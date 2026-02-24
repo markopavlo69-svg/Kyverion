@@ -1,6 +1,6 @@
-import { createContext, useContext, useCallback, useMemo } from 'react'
-import { useLocalStorage } from '@hooks/useLocalStorage'
-import { STORAGE_KEYS } from '@utils/storageKeys'
+import { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react'
+import { supabase } from '@lib/supabase'
+import { useAuth } from './AuthContext'
 import { useXP } from './XPContext'
 import { getXPForHabit, getStreakBonusXP } from '@utils/xpCalculator'
 import { getTodayString, offsetDate } from '@utils/dateUtils'
@@ -9,34 +9,63 @@ const HabitContext = createContext(null)
 
 function computeStreak(completions) {
   if (!completions || completions.length === 0) return 0
-  const dates = new Set(completions.map(c => c.date))
+  const dates     = new Set(completions.map(c => c.date))
   const today     = getTodayString()
   const yesterday = offsetDate(today, -1)
 
   let start = dates.has(today) ? today : dates.has(yesterday) ? yesterday : null
   if (!start) return 0
 
-  let streak = 0
-  let current = start
-  while (dates.has(current)) {
-    streak++
-    current = offsetDate(current, -1)
-  }
+  let streak = 0, current = start
+  while (dates.has(current)) { streak++; current = offsetDate(current, -1) }
   return streak
 }
 
 export function HabitProvider({ children }) {
-  const [habits, setHabits] = useLocalStorage(STORAGE_KEYS.HABITS, [])
+  const { user }   = useAuth()
   const { awardXP } = useXP()
+  const [habits, setHabits] = useState([])
 
-  // Active habits with live-computed streaks
+  // ── Load habits + completions ───────────────────────────────────────────────
+  useEffect(() => {
+    async function load() {
+      const [habitsRes, completionsRes] = await Promise.all([
+        supabase.from('habits').select('*').eq('user_id', user.id).eq('active', true),
+        supabase.from('habit_completions').select('*').eq('user_id', user.id),
+      ])
+
+      if (habitsRes.error)      { console.error('Habits load error:', habitsRes.error); return }
+      if (completionsRes.error) { console.error('Completions load error:', completionsRes.error); return }
+
+      // Group completions by habit
+      const byHabit = {}
+      for (const c of completionsRes.data ?? []) {
+        if (!byHabit[c.habit_id]) byHabit[c.habit_id] = []
+        byHabit[c.habit_id].push({ date: c.date, completedAt: c.completed_at })
+      }
+
+      setHabits((habitsRes.data ?? []).map(h => ({
+        id:            h.id,
+        name:          h.name,
+        description:   h.description   ?? '',
+        category:      h.category,
+        frequency:     h.frequency      ?? 'daily',
+        longestStreak: h.longest_streak ?? 0,
+        active:        h.active,
+        createdAt:     h.created_at,
+        completions:   byHabit[h.id]   ?? [],
+      })))
+    }
+    load()
+  }, [user.id])
+
+  // Live-computed streaks
   const activeHabits = useMemo(() =>
-    habits
-      .filter(h => h.active !== false)
-      .map(h => ({ ...h, currentStreak: computeStreak(h.completions) })),
+    habits.map(h => ({ ...h, currentStreak: computeStreak(h.completions) })),
     [habits]
   )
 
+  // ── CRUD ────────────────────────────────────────────────────────────────────
   const addHabit = useCallback((data) => {
     const newHabit = {
       id:            `habit_${Date.now()}`,
@@ -44,37 +73,52 @@ export function HabitProvider({ children }) {
       description:   data.description?.trim() ?? '',
       category:      data.category,
       frequency:     'daily',
-      createdAt:     new Date().toISOString(),
-      completions:   [],
-      currentStreak: 0,
       longestStreak: 0,
       active:        true,
+      createdAt:     new Date().toISOString(),
+      completions:   [],
     }
     setHabits(prev => [newHabit, ...prev])
-  }, [setHabits])
+    supabase.from('habits').insert({
+      id:             newHabit.id,
+      user_id:        user.id,
+      name:           newHabit.name,
+      description:    newHabit.description,
+      category:       newHabit.category,
+      frequency:      newHabit.frequency,
+      longest_streak: newHabit.longestStreak,
+      active:         true,
+      created_at:     newHabit.createdAt,
+    }).then(({ error }) => { if (error) console.error('Habit insert error:', error) })
+  }, [user.id])
 
   const updateHabit = useCallback((id, updates) => {
     setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h))
-  }, [setHabits])
+    const dbUpdates = {}
+    if ('name'        in updates) dbUpdates.name     = updates.name
+    if ('description' in updates) dbUpdates.description = updates.description
+    if ('category'    in updates) dbUpdates.category = updates.category
+    supabase.from('habits').update(dbUpdates).eq('id', id)
+      .then(({ error }) => { if (error) console.error('Habit update error:', error) })
+  }, [])
 
   const deleteHabit = useCallback((id) => {
-    setHabits(prev => prev.map(h => h.id === id ? { ...h, active: false } : h))
-  }, [setHabits])
+    setHabits(prev => prev.filter(h => h.id !== id))
+    supabase.from('habits').update({ active: false }).eq('id', id)
+      .then(({ error }) => { if (error) console.error('Habit delete error:', error) })
+  }, [])
 
   const completeHabitToday = useCallback((id) => {
     const today = getTodayString()
-    // Read from current render snapshot — event handlers run once, not twice in StrictMode
     const habit = habits.find(h => h.id === id)
     if (!habit || habit.completions.some(c => c.date === today)) return
 
-    const newCompletions = [
-      ...habit.completions,
-      { date: today, completedAt: new Date().toISOString() },
-    ]
-    const newStreak  = computeStreak(newCompletions)
-    const newLongest = Math.max(habit.longestStreak ?? 0, newStreak)
+    const newCompletion  = { date: today, completedAt: new Date().toISOString() }
+    const newCompletions = [...habit.completions, newCompletion]
+    const newStreak      = computeStreak(newCompletions)
+    const newLongest     = Math.max(habit.longestStreak ?? 0, newStreak)
 
-    // Award XP outside state updater to avoid StrictMode double-invocation
+    // Award XP
     awardXP(habit.category, getXPForHabit())
     const bonus = getStreakBonusXP(newStreak)
     if (bonus > 0) awardXP(habit.category, bonus)
@@ -84,7 +128,19 @@ export function HabitProvider({ children }) {
         ? { ...h, completions: newCompletions, currentStreak: newStreak, longestStreak: newLongest }
         : h
     ))
-  }, [habits, setHabits, awardXP])
+
+    supabase.from('habit_completions').insert({
+      habit_id:     id,
+      user_id:      user.id,
+      date:         today,
+      completed_at: newCompletion.completedAt,
+    }).then(({ error }) => { if (error) console.error('Completion insert error:', error) })
+
+    if (newLongest > (habit.longestStreak ?? 0)) {
+      supabase.from('habits').update({ longest_streak: newLongest }).eq('id', id)
+        .then(({ error }) => { if (error) console.error('Streak update error:', error) })
+    }
+  }, [habits, awardXP, user.id])
 
   const isHabitCompletedOnDate = useCallback((habitId, dateStr) => {
     const habit = habits.find(h => h.id === habitId)

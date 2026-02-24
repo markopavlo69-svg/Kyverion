@@ -1,8 +1,8 @@
-import { createContext, useContext, useCallback, useRef } from 'react'
-import { useLocalStorage } from '@hooks/useLocalStorage'
+import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
+import { supabase } from '@lib/supabase'
+import { useAuth } from './AuthContext'
 import { useXP } from './XPContext'
 
-// XP milestones awarded to the "vitality" category
 export const NS_MILESTONES = [
   { seconds: 3_600,     label: '1 Hour Smoke-Free',   xp: 10  },
   { seconds: 21_600,    label: '6 Hours Smoke-Free',  xp: 25  },
@@ -16,28 +16,67 @@ export const NS_MILESTONES = [
 const NoSmokeContext = createContext(null)
 
 export function NoSmokeProvider({ children }) {
+  const { user }   = useAuth()
   const { awardXP } = useXP()
 
-  const [settings, setSettings]                     = useLocalStorage('kyverion_nosmoke_settings', {})
-  const [log, setLog]                               = useLocalStorage('kyverion_nosmoke_log', [])
-  const [record, setRecord]                         = useLocalStorage('kyverion_nosmoke_record', 0)
-  const [startTime, setStartTime]                   = useLocalStorage('kyverion_nosmoke_start', null)
-  const [milestonesAwarded, setMilestonesAwarded]   = useLocalStorage('kyverion_nosmoke_milestones', [])
+  const [settings,          setSettings]          = useState({})
+  const [log,               setLog]               = useState([])
+  const [record,            setRecord]            = useState(0)
+  const [startTime,         setStartTime]         = useState(null)
+  const [milestonesAwarded, setMilestonesAwarded] = useState([])
 
-  // Ref-based guard: prevents double-awarding even in React strict mode double-invoke
-  const awardedRef = useRef(new Set(milestonesAwarded))
+  const awardedRef = useRef(new Set())
 
-  // Set start timestamp only once (on first page visit or first settings save)
+  // ── Load ────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from('nosmoke')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (error) { console.error('NoSmoke load error:', error); return }
+      if (!data) return // no row yet
+
+      const ms = data.milestones_awarded ?? []
+      setSettings(data.settings             ?? {})
+      setLog(data.log                       ?? [])
+      setRecord(data.record                 ?? 0)
+      setStartTime(data.start_time          ?? null)
+      setMilestonesAwarded(ms)
+      awardedRef.current = new Set(ms)
+    }
+    load()
+  }, [user.id])
+
+  // ── Persist helper ─────────────────────────────────────────────────────────
+  const persist = useCallback((patch) => {
+    supabase.from('nosmoke').upsert(
+      { user_id: user.id, updated_at: new Date().toISOString(), ...patch },
+      { onConflict: 'user_id' }
+    ).then(({ error }) => { if (error) console.error('NoSmoke save error:', error) })
+  }, [user.id])
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
   const ensureStarted = useCallback(() => {
-    setStartTime(prev => prev ?? Date.now())
-  }, [setStartTime])
+    if (startTime) return
+    const now = Date.now()
+    setStartTime(now)
+    persist({ start_time: now })
+  }, [startTime, persist])
 
   const saveSettings = useCallback((newSettings) => {
     setSettings(newSettings)
-    setStartTime(prev => prev ?? Date.now())
-  }, [setSettings, setStartTime])
+    if (!startTime) {
+      const now = Date.now()
+      setStartTime(now)
+      persist({ settings: newSettings, start_time: now })
+    } else {
+      persist({ settings: newSettings })
+    }
+  }, [startTime, persist])
 
-  // Seconds since last cigarette (or since start if none logged yet)
   const getCurrentStreak = useCallback((now = Date.now()) => {
     if (log.length === 0) {
       const start = startTime || 0
@@ -46,25 +85,30 @@ export function NoSmokeProvider({ children }) {
     return Math.floor((now - log[log.length - 1]) / 1000)
   }, [log, startTime])
 
-  // Award XP for time milestones — safe to call every second (ref guards duplicates)
   const checkMilestones = useCallback((streakSeconds) => {
     NS_MILESTONES.forEach(m => {
       if (streakSeconds >= m.seconds && !awardedRef.current.has(m.seconds)) {
-        awardedRef.current.add(m.seconds)           // sync guard
+        awardedRef.current.add(m.seconds)
         awardXP('vitality', m.xp)
-        setMilestonesAwarded(prev => [...prev, m.seconds])
+        setMilestonesAwarded(prev => {
+          const next = [...prev, m.seconds]
+          persist({ milestones_awarded: next })
+          return next
+        })
       }
     })
-  }, [awardXP, setMilestonesAwarded])
+  }, [awardXP, persist])
 
-  // Record a smoked cigarette — saves record streak, resets milestones
   const logSmoke = useCallback(() => {
     const streak = getCurrentStreak()
-    if (streak > record) setRecord(streak)
+    const newRecord = streak > record ? streak : record
+    const newLog    = [...log, Date.now()]
+    if (newRecord > record) setRecord(newRecord)
+    setLog(newLog)
     awardedRef.current.clear()
     setMilestonesAwarded([])
-    setLog(prev => [...prev, Date.now()])
-  }, [getCurrentStreak, record, setRecord, setMilestonesAwarded, setLog])
+    persist({ log: newLog, record: newRecord, milestones_awarded: [] })
+  }, [getCurrentStreak, record, log, persist])
 
   return (
     <NoSmokeContext.Provider value={{
