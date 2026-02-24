@@ -1,0 +1,112 @@
+:root {
+  /* === BACKGROUNDS === */
+  --bg-primary:   #0a0e1a;
+  --bg-secondary: #0d1224;
+  --bg-card:      rgba(13, 18, 36, 0.72);
+  --bg-overlay:   rgba(0, 0, 0, 0.65);
+  --bg-surface:   #111827;
+  --bg-input:     rgba(15, 21, 40, 0.8);
+
+  /* === ACCENT COLORS === */
+  --accent-teal:   #00d4ff;
+  --accent-cyan:   #06b6d4;
+  --accent-purple: #a855f7;
+  --accent-violet: #7c3aed;
+  --accent-gold:   #f59e0b;
+  --accent-amber:  #fbbf24;
+
+  /* === CATEGORY COLORS === */
+  --cat-strength:     #ef4444;
+  --cat-intelligence: #3b82f6;
+  --cat-creativity:   #a855f7;
+  --cat-discipline:   #06b6d4;
+  --cat-social:       #f59e0b;
+  --cat-vitality:     #10b981;
+
+  /* === PRIORITY COLORS === */
+  --priority-low:    #10b981;
+  --priority-medium: #f59e0b;
+  --priority-high:   #ef4444;
+
+  /* === TEXT === */
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --text-disabled:  #475569;
+  --text-accent:    #00d4ff;
+  --text-gold:      #f59e0b;
+
+  /* === BORDERS === */
+  --border-subtle: rgba(148, 163, 184, 0.08);
+  --border-dim:    rgba(148, 163, 184, 0.15);
+  --border-glow:   rgba(0, 212, 255, 0.3);
+  --border-active: rgba(0, 212, 255, 0.7);
+
+  /* === GLASSMORPHISM === */
+  --glass-bg:     rgba(13, 18, 36, 0.65);
+  --glass-border: rgba(0, 212, 255, 0.12);
+  --glass-blur:   14px;
+
+  /* === SHADOWS & GLOWS === */
+  --shadow-sm:    0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-card:  0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 8px 48px rgba(0, 0, 0, 0.6);
+  --glow-teal:    0 0 20px rgba(0, 212, 255, 0.22), 0 0 40px rgba(0, 212, 255, 0.08);
+  --glow-teal-md: 0 0 30px rgba(0, 212, 255, 0.35), 0 0 60px rgba(0, 212, 255, 0.15);
+  --glow-gold:    0 0 16px rgba(245, 158, 11, 0.4);
+  --glow-purple:  0 0 20px rgba(168, 85, 247, 0.3);
+  --glow-green:   0 0 16px rgba(16, 185, 129, 0.35);
+
+  /* === TYPOGRAPHY === */
+  --font-primary: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* === FONT SIZES === */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  /* === SPACING === */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* === LAYOUT === */
+  --sidebar-width:     260px;
+  --topbar-height:     56px;
+  --content-max-width: 1100px;
+
+  /* === BORDER RADIUS === */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* === TRANSITIONS === */
+  --transition-fast:   140ms ease;
+  --transition-normal: 240ms ease;
+  --transition-slow:   380ms ease;
+
+  /* === Z-INDEX === */
+  --z-base:    1;
+  --z-card:    10;
+  --z-sidebar: 100;
+  --z-topbar:  200;
+  --z-overlay: 300;
+  --z-modal:   400;
+  --z-toast:   500;
+}

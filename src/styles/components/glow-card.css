@@ -1,0 +1,39 @@
+.glow-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-fast);
+}
+
+.glow-card--interactive:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-card), var(--glow-teal);
+  transform: translateY(-2px);
+}
+
+.glow-card--highlight {
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: var(--shadow-card), var(--glow-gold);
+}
+
+.glow-card--purple {
+  border-color: rgba(168, 85, 247, 0.25);
+  box-shadow: var(--shadow-card), var(--glow-purple);
+}
+
+.glow-card--danger {
+  border-color: rgba(239, 68, 68, 0.25);
+  box-shadow: var(--shadow-card), 0 0 16px rgba(239, 68, 68, 0.15);
+}
+
+.glow-card--completed {
+  opacity: 0.55;
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
