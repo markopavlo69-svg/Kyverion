@@ -10,24 +10,26 @@ import ProfilePage from '@pages/ProfilePage'
 import NoSmokePage from '@pages/NoSmokePage'
 import FinancePage from '@pages/FinancePage'
 import LearningPage from '@pages/LearningPage'
+import DashboardPage from '@pages/DashboardPage'
 import XPFeedToast from '@components/profile/XPFeedToast'
 import { useXP } from '@context/XPContext'
 
 // Inner app — only mounts when user is authenticated and all providers are ready
 function AppInner() {
-  const [activePage, setActivePage] = useState('tasks')
+  const [activePage, setActivePage] = useState('dashboard')
   const { toastQueue, dismissToast } = useXP()
 
   const renderPage = () => {
     switch (activePage) {
-      case 'tasks':    return <TasksPage />
-      case 'habits':   return <HabitsPage />
-      case 'calendar': return <CalendarPage />
-      case 'profile':  return <ProfilePage />
-      case 'nosmoke':  return <NoSmokePage />
-      case 'finance':  return <FinancePage />
-      case 'learning': return <LearningPage />
-      default:         return <TasksPage />
+      case 'dashboard': return <DashboardPage onNavigate={setActivePage} />
+      case 'tasks':     return <TasksPage />
+      case 'habits':    return <HabitsPage />
+      case 'calendar':  return <CalendarPage />
+      case 'profile':   return <ProfilePage />
+      case 'nosmoke':   return <NoSmokePage />
+      case 'finance':   return <FinancePage />
+      case 'learning':  return <LearningPage />
+      default:          return <DashboardPage onNavigate={setActivePage} />
     }
   }
 

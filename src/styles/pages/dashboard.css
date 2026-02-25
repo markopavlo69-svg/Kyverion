@@ -1,0 +1,317 @@
+/* ── Dashboard Page ──────────────────────────────────────────────────────────── */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────────── */
+
+.dash-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  border-radius: 16px;
+  padding: var(--space-5) var(--space-6);
+  backdrop-filter: blur(12px);
+  flex-wrap: wrap;
+}
+
+.dash-hero__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex: 1;
+  min-width: 260px;
+}
+
+.dash-hero__orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(0, 212, 255, 0.3), rgba(0, 212, 255, 0.05));
+  border: 2px solid rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.25), inset 0 0 16px rgba(0, 212, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.dash-hero__orb:hover {
+  box-shadow: 0 0 36px rgba(0, 212, 255, 0.4), inset 0 0 20px rgba(0, 212, 255, 0.12);
+  transform: scale(1.05);
+}
+
+.dash-hero__level {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-teal);
+  line-height: 1;
+}
+
+.dash-hero__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dash-hero__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+
+.dash-hero__xp {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.dash-hero__bar-wrap {
+  width: 220px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: var(--space-1);
+}
+
+.dash-hero__bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-teal), var(--accent-cyan));
+  border-radius: 99px;
+  transition: width var(--transition-slow);
+}
+
+.dash-hero__bar-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Category pills */
+.dash-hero__cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.dash-hero__cat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--cat-color) 25%, transparent);
+  font-size: 0.75rem;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dash-hero__cat:hover {
+  background: color-mix(in srgb, var(--cat-color) 10%, transparent);
+}
+
+.dash-hero__cat-icon {
+  font-size: 0.85rem;
+}
+
+.dash-hero__cat-name {
+  color: var(--text-secondary);
+}
+
+.dash-hero__cat-level {
+  color: var(--cat-color);
+  font-weight: 600;
+}
+
+/* ── Module Grid ─────────────────────────────────────────────────────────────── */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ── Module Card ─────────────────────────────────────────────────────────────── */
+
+.dash-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--card-accent, var(--accent-teal));
+  border-radius: 14px;
+  padding: var(--space-4) var(--space-5);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.dash-card:hover {
+  border-color: color-mix(in srgb, var(--card-accent) 30%, transparent);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--card-accent) 10%, transparent);
+}
+
+.dash-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dash-card__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.dash-card__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  flex: 1;
+}
+
+.dash-card__nav-btn {
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 40%, transparent);
+  color: var(--card-accent, var(--accent-teal));
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  letter-spacing: 0.03em;
+}
+
+.dash-card__nav-btn:hover {
+  background: color-mix(in srgb, var(--card-accent) 15%, transparent);
+}
+
+.dash-card__stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dash-card__footer {
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Habit progress bar */
+.dash-card__progress-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.dash-card__progress-bar {
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.dash-card__progress-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 99px;
+  transition: width var(--transition-slow);
+}
+
+/* ── Stat Row ─────────────────────────────────────────────────────────────────── */
+
+.dash-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.dash-stat__label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.dash-stat__value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dash-stat__value--gold   { color: var(--color-gold, #f59e0b); }
+.dash-stat__value--danger { color: var(--color-danger, #ef4444); }
+.dash-stat__value--warn   { color: #f97316; }
+
+/* ── Appointment list (Calendar card footer) ─────────────────────────────────── */
+
+.dash-appt-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dash-appt-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  padding: 3px 0;
+  border-left: 2px solid var(--appt-color, var(--accent-teal));
+  padding-left: var(--space-2);
+}
+
+.dash-appt-time {
+  color: var(--appt-color, var(--accent-teal));
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.dash-appt-title {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-appt-more {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding-left: var(--space-2);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .dash-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dash-hero__cats {
+    justify-content: flex-start;
+  }
+
+  .dash-hero__bar-wrap {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}

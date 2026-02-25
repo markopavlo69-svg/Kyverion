@@ -5,6 +5,18 @@ import '@styles/layout.css'
 
 const NAV_ITEMS = [
   {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="2" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+        <rect x="10" y="2" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+        <rect x="2" y="10" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+        <rect x="10" y="10" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+      </svg>
+    ),
+  },
+  {
     id: 'tasks',
     label: 'Tasks',
     icon: (
