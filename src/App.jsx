@@ -13,6 +13,7 @@ import LearningPage from '@pages/LearningPage'
 import DashboardPage from '@pages/DashboardPage'
 import XPFeedToast from '@components/profile/XPFeedToast'
 import { useXP } from '@context/XPContext'
+import AIChat from '@components/ai/AIChat'
 
 // Inner app — only mounts when user is authenticated and all providers are ready
 function AppInner() {
@@ -39,6 +40,7 @@ function AppInner() {
         {renderPage()}
       </AppShell>
       <XPFeedToast toasts={toastQueue} onDismiss={dismissToast} />
+      <AIChat activePage={activePage} onNavigate={setActivePage} />
     </>
   )
 }

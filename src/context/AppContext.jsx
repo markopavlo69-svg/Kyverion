@@ -1,10 +1,11 @@
-import { XPProvider } from './XPContext'
-import { TaskProvider } from './TaskContext'
-import { HabitProvider } from './HabitContext'
+import { XPProvider }          from './XPContext'
+import { TaskProvider }        from './TaskContext'
+import { HabitProvider }       from './HabitContext'
 import { AppointmentProvider } from './AppointmentContext'
-import { NoSmokeProvider } from './NoSmokeContext'
-import { FinanceProvider } from './FinanceContext'
-import { LearningProvider } from './LearningContext'
+import { NoSmokeProvider }     from './NoSmokeContext'
+import { FinanceProvider }     from './FinanceContext'
+import { LearningProvider }    from './LearningContext'
+import { AIProvider }          from './AIContext'
 
 export function AppProvider({ children }) {
   return (
@@ -15,7 +16,9 @@ export function AppProvider({ children }) {
             <NoSmokeProvider>
               <FinanceProvider>
                 <LearningProvider>
-                  {children}
+                  <AIProvider>
+                    {children}
+                  </AIProvider>
                 </LearningProvider>
               </FinanceProvider>
             </NoSmokeProvider>
