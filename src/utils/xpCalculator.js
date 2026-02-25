@@ -37,14 +37,19 @@ export function getXPForTask(priority) {
   return map[priority] ?? 10
 }
 
-export function getXPForHabit() {
-  return 15
+export const HABIT_MASTERY_THRESHOLD = 90
+
+export function getXPForHabit(mastered = false) {
+  return mastered ? 5 : 15
 }
 
 export function getStreakBonusXP(streak) {
   if (streak === 100) return 500
+  if (streak === 90)  return 500  // mastery achievement
   if (streak === 30)  return 100
   if (streak === 7)   return 25
+  // Monthly maintenance bonus every 30 days after mastery (120, 150, 180…)
+  if (streak > 90 && streak % 30 === 0) return 100
   return 0
 }
 

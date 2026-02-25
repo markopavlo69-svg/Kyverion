@@ -97,6 +97,26 @@ export function doesTaskRecurOn(task, dateStr) {
   }
 }
 
+// Returns ISO week key "YYYY-Www" for a date string (Mon=start of week)
+export function getISOWeekKey(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  // Shift to Thursday to correctly compute ISO year
+  const day = d.getDay() || 7 // 1=Mon … 7=Sun
+  d.setDate(d.getDate() + 4 - day)
+  const yearStart = new Date(d.getFullYear(), 0, 1)
+  const week = Math.ceil(((d - yearStart) / 86400000 + 1) / 7)
+  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+// Returns last N ISO week keys (oldest first), ending at the week containing dateStr
+export function getLastNWeeks(dateStr, n) {
+  const results = []
+  for (let i = n - 1; i >= 0; i--) {
+    results.push(getISOWeekKey(offsetDate(dateStr, -i * 7)))
+  }
+  return results
+}
+
 // Returns true if a task is marked complete for the given date
 export function isTaskCompletedForDate(task, dateStr) {
   if (!task.recurrence || task.recurrence.type === 'none') return !!task.completed

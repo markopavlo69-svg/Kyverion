@@ -609,3 +609,51 @@
 .transaction-form__actions .btn {
   flex: 1;
 }
+
+/* ── Recurring transaction UI ──────────────────────────────── */
+.tx-recurring-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.tx-recurring-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-teal);
+  cursor: pointer;
+}
+.tx-period-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
+.tx-period-row .freq-btn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-dim);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.tx-period-row .freq-btn:hover {
+  border-color: var(--border-glow);
+  color: var(--text-primary);
+}
+.tx-period-row .freq-btn--active {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+.tx-period-row .form-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}

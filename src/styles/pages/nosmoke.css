@@ -241,6 +241,109 @@
   transition: height var(--transition-normal);
 }
 
+/* ── Quit For Good Button ───────────────────────────────────── */
+
+.ns-quit-btn {
+  width: 100%;
+  padding: var(--space-5) var(--space-6);
+  background: linear-gradient(135deg,
+    rgba(16, 185, 129, 0.12),
+    rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  animation: quitPulse 3s ease-in-out infinite;
+}
+
+@keyframes quitPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); }
+  50%       { box-shadow: 0 0 40px rgba(16, 185, 129, 0.35), 0 0 60px rgba(245, 158, 11, 0.1); }
+}
+
+.ns-quit-btn:hover {
+  background: linear-gradient(135deg,
+    rgba(16, 185, 129, 0.22),
+    rgba(245, 158, 11, 0.14));
+  border-color: rgba(16, 185, 129, 0.7);
+  transform: translateY(-2px);
+  animation: none;
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.3), 0 0 60px rgba(245, 158, 11, 0.15);
+}
+
+.ns-quit-btn:active { transform: translateY(0) scale(0.99); }
+
+.ns-quit-btn__icon  { font-size: 1.75rem; flex-shrink: 0; }
+
+.ns-quit-btn__label {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--cat-vitality);
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+.ns-quit-btn__xp {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  flex-shrink: 0;
+}
+
+/* ── Quit For Good Banner (claimed state) ───────────────────── */
+
+.ns-quit-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background: linear-gradient(135deg,
+    rgba(245, 158, 11, 0.1),
+    rgba(16, 185, 129, 0.08));
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.1);
+}
+
+.ns-quit-banner__icon { font-size: 2rem; flex-shrink: 0; }
+
+.ns-quit-banner__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ns-quit-banner__text strong {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  color: var(--accent-gold);
+  letter-spacing: 0.06em;
+}
+
+.ns-quit-banner__text span {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ns-quit-banner__xp {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
 /* ── I Smoked Button ────────────────────────────────────────── */
 
 .ns-smoked-btn {

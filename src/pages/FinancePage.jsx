@@ -26,6 +26,7 @@ export default function FinancePage() {
   const {
     settings,
     addTransaction, deleteTransaction, updateSettings,
+    addRecurringTemplate,
     getMonthTransactions, getMonthData, awardMonthXP,
   } = useFinance()
 
@@ -185,6 +186,7 @@ export default function FinancePage() {
       {showForm && (
         <TransactionForm
           onSubmit={addTransaction}
+          onRecurringSubmit={addRecurringTemplate}
           onClose={() => setShowForm(false)}
         />
       )}

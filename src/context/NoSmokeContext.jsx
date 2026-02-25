@@ -4,14 +4,19 @@ import { useAuth } from './AuthContext'
 import { useXP } from './XPContext'
 
 export const NS_MILESTONES = [
-  { seconds: 3_600,     label: '1 Hour Smoke-Free',   xp: 10  },
-  { seconds: 21_600,    label: '6 Hours Smoke-Free',  xp: 25  },
-  { seconds: 43_200,    label: '12 Hours Smoke-Free', xp: 50  },
-  { seconds: 86_400,    label: '1 Day Smoke-Free',    xp: 100 },
-  { seconds: 172_800,   label: '2 Days Smoke-Free',   xp: 150 },
-  { seconds: 604_800,   label: '7 Days Smoke-Free',   xp: 300 },
-  { seconds: 2_592_000, label: '30 Days Smoke-Free',  xp: 750 },
+  { seconds: 3_600,     label: '1 Hour Smoke-Free',   xp: 10   },
+  { seconds: 21_600,    label: '6 Hours Smoke-Free',  xp: 25   },
+  { seconds: 43_200,    label: '12 Hours Smoke-Free', xp: 50   },
+  { seconds: 86_400,    label: '1 Day Smoke-Free',    xp: 100  },
+  { seconds: 172_800,   label: '2 Days Smoke-Free',   xp: 150  },
+  { seconds: 604_800,   label: '7 Days Smoke-Free',   xp: 300  },
+  { seconds: 2_592_000, label: '30 Days Smoke-Free',  xp: 750  },
+  { seconds: 7_776_000, label: '90 Days Smoke-Free',  xp: 1000 },
 ]
+
+export const NS_QUIT_THRESHOLD = 7_776_000 // 90 days in seconds
+export const NS_QUIT_SENTINEL  = 'quit_for_good'
+export const NS_QUIT_XP        = 2500
 
 const NoSmokeContext = createContext(null)
 
@@ -19,13 +24,15 @@ export function NoSmokeProvider({ children }) {
   const { user }   = useAuth()
   const { awardXP } = useXP()
 
-  const [settings,          setSettings]          = useState({})
-  const [log,               setLog]               = useState([])
-  const [record,            setRecord]            = useState(0)
-  const [startTime,         setStartTime]         = useState(null)
-  const [milestonesAwarded, setMilestonesAwarded] = useState([])
+  const [settings,           setSettings]           = useState({})
+  const [log,                setLog]                = useState([])
+  const [record,             setRecord]             = useState(0)
+  const [startTime,          setStartTime]          = useState(null)
+  const [milestonesAwarded,  setMilestonesAwarded]  = useState([])
+  const [quitForGoodClaimed, setQuitForGoodClaimed] = useState(false)
 
-  const awardedRef = useRef(new Set())
+  const awardedRef      = useRef(new Set())
+  const quitClaimedRef  = useRef(false)
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -39,12 +46,15 @@ export function NoSmokeProvider({ children }) {
       if (error) { console.error('NoSmoke load error:', error); return }
       if (!data) return // no row yet
 
-      const ms = data.milestones_awarded ?? []
-      setSettings(data.settings             ?? {})
-      setLog(data.log                       ?? [])
-      setRecord(data.record                 ?? 0)
-      setStartTime(data.start_time          ?? null)
+      const ms  = data.milestones_awarded ?? []
+      const qfg = ms.includes(NS_QUIT_SENTINEL)
+      setSettings(data.settings  ?? {})
+      setLog(data.log             ?? [])
+      setRecord(data.record       ?? 0)
+      setStartTime(data.start_time ?? null)
       setMilestonesAwarded(ms)
+      setQuitForGoodClaimed(qfg)
+      quitClaimedRef.current = qfg
       awardedRef.current = new Set(ms)
     }
     load()
@@ -105,10 +115,24 @@ export function NoSmokeProvider({ children }) {
     const newLog    = [...log, Date.now()]
     if (newRecord > record) setRecord(newRecord)
     setLog(newLog)
-    awardedRef.current.clear()
-    setMilestonesAwarded([])
-    persist({ log: newLog, record: newRecord, milestones_awarded: [] })
+    // Preserve quit-for-good sentinel — achievement is permanent even through relapses
+    const preserved = quitClaimedRef.current ? [NS_QUIT_SENTINEL] : []
+    awardedRef.current = new Set(preserved)
+    setMilestonesAwarded(preserved)
+    persist({ log: newLog, record: newRecord, milestones_awarded: preserved })
   }, [getCurrentStreak, record, log, persist])
+
+  const claimQuitForGood = useCallback(() => {
+    if (quitClaimedRef.current) return
+    quitClaimedRef.current = true
+    setQuitForGoodClaimed(true)
+    awardXP('vitality', NS_QUIT_XP)
+    setMilestonesAwarded(prev => {
+      const next = [...prev, NS_QUIT_SENTINEL]
+      persist({ milestones_awarded: next })
+      return next
+    })
+  }, [awardXP, persist])
 
   return (
     <NoSmokeContext.Provider value={{
@@ -117,12 +141,16 @@ export function NoSmokeProvider({ children }) {
       record,
       startTime,
       milestonesAwarded,
+      quitForGoodClaimed,
       NS_MILESTONES,
+      NS_QUIT_THRESHOLD,
+      NS_QUIT_XP,
       ensureStarted,
       saveSettings,
       logSmoke,
       getCurrentStreak,
       checkMilestones,
+      claimQuitForGood,
     }}>
       {children}
     </NoSmokeContext.Provider>

@@ -15,7 +15,8 @@ const RECUR_LABELS = {
 }
 
 export default function TaskCard({ task, dateStr, onComplete, onUncomplete, onDelete, onEdit }) {
-  const [showDesc, setShowDesc] = useState(false)
+  const [showDesc,      setShowDesc]      = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const today = dateStr || getTodayString()
 
   const isRecurring  = task.recurrence && task.recurrence.type !== 'none'
@@ -52,16 +53,26 @@ export default function TaskCard({ task, dateStr, onComplete, onUncomplete, onDe
             {task.title}
           </span>
           <div className="task-card__actions">
-            <IconButton variant="edit" onClick={() => onEdit(task)} title="Edit task">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </IconButton>
-            <IconButton variant="danger" onClick={() => onDelete(task.id)} title="Delete task">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M2 3.5h10M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M11 3.5L10 12a.5.5 0 01-.5.5h-5A.5.5 0 014 12L3 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-              </svg>
-            </IconButton>
+            {confirmDelete ? (
+              <div className="task-card__confirm">
+                <span className="task-card__confirm-label">Delete?</span>
+                <button className="task-card__confirm-yes" onClick={() => onDelete(task.id)}>Yes</button>
+                <button className="task-card__confirm-no" onClick={() => setConfirmDelete(false)}>No</button>
+              </div>
+            ) : (
+              <>
+                <IconButton variant="edit" onClick={() => onEdit(task)} title="Edit task">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </IconButton>
+                <IconButton variant="danger" onClick={() => setConfirmDelete(true)} title="Delete task">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 3.5h10M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M11 3.5L10 12a.5.5 0 01-.5.5h-5A.5.5 0 014 12L3 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                </IconButton>
+              </>
+            )}
           </div>
         </div>
 

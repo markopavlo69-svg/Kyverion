@@ -232,6 +232,21 @@
 }
 .topbar__menu-btn:hover { color: var(--accent-teal); }
 
+.topbar__search-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+  flex-shrink: 0;
+}
+.topbar__search-btn:hover { color: var(--accent-teal); }
+
 .topbar__logout-btn {
   background: transparent;
   border: none;

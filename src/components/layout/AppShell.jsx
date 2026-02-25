@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
+import AppSearch from './AppSearch'
 import '@styles/layout.css'
 
 const PAGE_TITLES = {
+  today:     'Today',
   dashboard: 'Dashboard',
   tasks:     'Tasks',
   habits:    'Habits',
@@ -16,6 +18,19 @@ const PAGE_TITLES = {
 
 export default function AppShell({ activePage, onNavigate, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [searchOpen,  setSearchOpen]  = useState(false)
+
+  // Ctrl+K / Cmd+K global shortcut
+  useEffect(() => {
+    const handler = e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(v => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const handleNavigate = (page) => {
     onNavigate(page)
@@ -27,6 +42,7 @@ export default function AppShell({ activePage, onNavigate, children }) {
       <TopBar
         title={PAGE_TITLES[activePage] ?? 'Kyverion'}
         onMenuClick={() => setSidebarOpen(true)}
+        onSearchClick={() => setSearchOpen(true)}
       />
 
       {sidebarOpen && (
@@ -44,6 +60,13 @@ export default function AppShell({ activePage, onNavigate, children }) {
           {children}
         </div>
       </main>
+
+      {searchOpen && (
+        <AppSearch
+          onNavigate={handleNavigate}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
     </div>
   )
 }

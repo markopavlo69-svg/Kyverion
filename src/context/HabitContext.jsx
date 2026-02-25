@@ -2,8 +2,8 @@ import { createContext, useContext, useCallback, useEffect, useMemo, useState } 
 import { supabase } from '@lib/supabase'
 import { useAuth } from './AuthContext'
 import { useXP } from './XPContext'
-import { getXPForHabit, getStreakBonusXP } from '@utils/xpCalculator'
-import { getTodayString, offsetDate } from '@utils/dateUtils'
+import { getXPForHabit, getStreakBonusXP, HABIT_MASTERY_THRESHOLD } from '@utils/xpCalculator'
+import { getTodayString, offsetDate, getISOWeekKey } from '@utils/dateUtils'
 
 const HabitContext = createContext(null)
 
@@ -18,6 +18,26 @@ function computeStreak(completions) {
 
   let streak = 0, current = start
   while (dates.has(current)) { streak++; current = offsetDate(current, -1) }
+  return streak
+}
+
+function computeWeeklyStreak(completions) {
+  if (!completions || completions.length === 0) return 0
+  const weekSet    = new Set(completions.map(c => getISOWeekKey(c.date)))
+  const today      = getTodayString()
+  const thisWeek   = getISOWeekKey(today)
+  const lastWeek   = getISOWeekKey(offsetDate(today, -7))
+
+  let startWeek = weekSet.has(thisWeek) ? thisWeek : weekSet.has(lastWeek) ? lastWeek : null
+  if (!startWeek) return 0
+
+  // Walk back week by week
+  let streak = 0
+  let checkDate = weekSet.has(thisWeek) ? today : offsetDate(today, -7)
+  while (weekSet.has(getISOWeekKey(checkDate))) {
+    streak++
+    checkDate = offsetDate(checkDate, -7)
+  }
   return streak
 }
 
@@ -59,9 +79,14 @@ export function HabitProvider({ children }) {
     load()
   }, [user.id])
 
-  // Live-computed streaks
+  // Live-computed streaks (daily or weekly based on frequency)
   const activeHabits = useMemo(() =>
-    habits.map(h => ({ ...h, currentStreak: computeStreak(h.completions) })),
+    habits.map(h => ({
+      ...h,
+      currentStreak: h.frequency === 'weekly'
+        ? computeWeeklyStreak(h.completions)
+        : computeStreak(h.completions),
+    })),
     [habits]
   )
 
@@ -72,7 +97,7 @@ export function HabitProvider({ children }) {
       name:          data.name.trim(),
       description:   data.description?.trim() ?? '',
       category:      data.category,
-      frequency:     'daily',
+      frequency:     data.frequency ?? 'daily',
       longestStreak: 0,
       active:        true,
       createdAt:     new Date().toISOString(),
@@ -95,9 +120,10 @@ export function HabitProvider({ children }) {
   const updateHabit = useCallback((id, updates) => {
     setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h))
     const dbUpdates = {}
-    if ('name'        in updates) dbUpdates.name     = updates.name
+    if ('name'        in updates) dbUpdates.name        = updates.name
     if ('description' in updates) dbUpdates.description = updates.description
-    if ('category'    in updates) dbUpdates.category = updates.category
+    if ('category'    in updates) dbUpdates.category    = updates.category
+    if ('frequency'   in updates) dbUpdates.frequency   = updates.frequency
     supabase.from('habits').update(dbUpdates).eq('id', id)
       .then(({ error }) => { if (error) console.error('Habit update error:', error) })
   }, [])
@@ -111,15 +137,23 @@ export function HabitProvider({ children }) {
   const completeHabitToday = useCallback((id) => {
     const today = getTodayString()
     const habit = habits.find(h => h.id === id)
-    if (!habit || habit.completions.some(c => c.date === today)) return
+    if (!habit) return
+    // For weekly habits: already done if completed any day this week
+    if (habit.frequency === 'weekly') {
+      const thisWeek = getISOWeekKey(today)
+      if (habit.completions.some(c => getISOWeekKey(c.date) === thisWeek)) return
+    } else {
+      if (habit.completions.some(c => c.date === today)) return
+    }
 
     const newCompletion  = { date: today, completedAt: new Date().toISOString() }
     const newCompletions = [...habit.completions, newCompletion]
     const newStreak      = computeStreak(newCompletions)
     const newLongest     = Math.max(habit.longestStreak ?? 0, newStreak)
 
-    // Award XP
-    awardXP(habit.category, getXPForHabit())
+    // Award XP — reduced to maintenance rate once habit is mastered (longestStreak >= 90)
+    const isMastered = (habit.longestStreak ?? 0) >= HABIT_MASTERY_THRESHOLD
+    awardXP(habit.category, getXPForHabit(isMastered))
     const bonus = getStreakBonusXP(newStreak)
     if (bonus > 0) awardXP(habit.category, bonus)
 
@@ -148,11 +182,15 @@ export function HabitProvider({ children }) {
   }, [habits])
 
   const getAllHabitsStatusForDate = useCallback((dateStr) => {
+    const weekKey = getISOWeekKey(dateStr)
     return activeHabits.map(h => ({
       habitId:   h.id,
       name:      h.name,
       category:  h.category,
-      completed: h.completions.some(c => c.date === dateStr),
+      frequency: h.frequency,
+      completed: h.frequency === 'weekly'
+        ? h.completions.some(c => getISOWeekKey(c.date) === weekKey)
+        : h.completions.some(c => c.date === dateStr),
     }))
   }, [activeHabits])
 

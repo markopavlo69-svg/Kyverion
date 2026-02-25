@@ -17,13 +17,12 @@ function formatDuration(seconds) {
 
 export default function AreaDetail({ area, onBack }) {
   const { updateArea, deleteArea, addNote, updateNote, deleteNote, addLink, deleteLink, getAreaStats } = useLearning()
-  const [tab, setTab] = useState('notes') // 'notes' | 'links'
-  const [editingArea, setEditingArea] = useState(false)
-  const [noteEditorOpen, setNoteEditorOpen] = useState(false)
-  const [editingNote, setEditingNote] = useState(null)
-  const [addLinkOpen, setAddLinkOpen] = useState(false)
-  const [linkTitle, setLinkTitle] = useState('')
-  const [linkUrl, setLinkUrl] = useState('')
+  const [tab,           setTab]           = useState('notes') // 'notes' | 'links'
+  const [editingArea,   setEditingArea]   = useState(false)
+  const [selectedNote,  setSelectedNote]  = useState(null) // note object when editing
+  const [addLinkOpen,   setAddLinkOpen]   = useState(false)
+  const [linkTitle,     setLinkTitle]     = useState('')
+  const [linkUrl,       setLinkUrl]       = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const stats = getAreaStats(area.id)
@@ -33,22 +32,21 @@ export default function AreaDetail({ area, onBack }) {
     setEditingArea(false)
   }
 
-  function handleSaveNote(data) {
-    if (editingNote) {
-      updateNote(area.id, editingNote.id, data)
-    } else {
-      addNote(area.id, data)
-    }
-    setNoteEditorOpen(false)
-    setEditingNote(null)
+  // Open a note for editing inline
+  function openNote(note) {
+    setSelectedNote(note)
   }
 
-  function openEditNote(note) {
-    setEditingNote(note)
-    setNoteEditorOpen(true)
+  // Create a new note and immediately open it
+  function handleAddNote() {
+    const id = addNote(area.id, { title: '', content: '' })
+    // Find the note just added — it won't be in `area` yet since state is async,
+    // so we create a local stub and open it; the editor will auto-save on change
+    setSelectedNote({ id, title: '', content: '', images: [] })
   }
 
   function handleDeleteNote(noteId) {
+    if (selectedNote?.id === noteId) setSelectedNote(null)
     deleteNote(area.id, noteId)
   }
 
@@ -64,6 +62,19 @@ export default function AreaDetail({ area, onBack }) {
   function handleDeleteArea() {
     deleteArea(area.id)
     onBack()
+  }
+
+  // ── If a note is open, render the inline editor ──────────────
+  if (selectedNote) {
+    // Get fresh note data from area state (for latest title/content after saves)
+    const liveNote = area.notes?.find(n => n.id === selectedNote.id) ?? selectedNote
+    return (
+      <NoteEditor
+        note={liveNote}
+        areaId={area.id}
+        onBack={() => setSelectedNote(null)}
+      />
+    )
   }
 
   return (
@@ -140,16 +151,13 @@ export default function AreaDetail({ area, onBack }) {
       {tab === 'notes' && (
         <div className="detail-content">
           <div className="detail-content__toolbar">
-            <button
-              className="btn btn--primary btn--sm"
-              onClick={() => { setEditingNote(null); setNoteEditorOpen(true) }}
-            >
-              + Add Note
+            <button className="btn btn--primary btn--sm" onClick={handleAddNote}>
+              + New Note
             </button>
           </div>
           {!area.notes?.length ? (
             <div className="empty-section">
-              <p>No notes yet. Start adding knowledge!</p>
+              <p>No notes yet. Start writing!</p>
             </div>
           ) : (
             <div className="notes-grid">
@@ -157,7 +165,7 @@ export default function AreaDetail({ area, onBack }) {
                 <NoteCard
                   key={note.id}
                   note={note}
-                  onEdit={openEditNote}
+                  onOpen={openNote}
                   onDelete={handleDeleteNote}
                 />
               ))}
@@ -221,17 +229,10 @@ export default function AreaDetail({ area, onBack }) {
       {editingArea && (
         <AreaForm area={area} onSave={handleSaveArea} onClose={() => setEditingArea(false)} />
       )}
-      {noteEditorOpen && (
-        <NoteEditor
-          note={editingNote}
-          onSave={handleSaveNote}
-          onClose={() => { setNoteEditorOpen(false); setEditingNote(null) }}
-        />
-      )}
       {confirmDelete && (
         <div className="modal-backdrop" onClick={() => setConfirmDelete(false)}>
           <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
-            <h3 className="modal-title">Delete "{area.name}"?</h3>
+            <h3 className="modal-title">Delete &quot;{area.name}&quot;?</h3>
             <p className="modal-body-text">This will permanently delete the area, all its notes, links and session history.</p>
             <div className="form-actions">
               <button className="btn btn--ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>

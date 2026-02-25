@@ -11,9 +11,16 @@ import NoSmokePage from '@pages/NoSmokePage'
 import FinancePage from '@pages/FinancePage'
 import LearningPage from '@pages/LearningPage'
 import DashboardPage from '@pages/DashboardPage'
+import TodayPage from '@pages/TodayPage'
 import XPFeedToast from '@components/profile/XPFeedToast'
 import { useXP } from '@context/XPContext'
 import AIChat from '@components/ai/AIChat'
+import { useNotifications } from '@hooks/useNotifications'
+
+function NotificationManager() {
+  useNotifications()
+  return null
+}
 
 // Inner app — only mounts when user is authenticated and all providers are ready
 function AppInner() {
@@ -22,6 +29,7 @@ function AppInner() {
 
   const renderPage = () => {
     switch (activePage) {
+      case 'today':     return <TodayPage onNavigate={setActivePage} />
       case 'dashboard': return <DashboardPage onNavigate={setActivePage} />
       case 'tasks':     return <TasksPage />
       case 'habits':    return <HabitsPage />
@@ -41,6 +49,7 @@ function AppInner() {
       </AppShell>
       <XPFeedToast toasts={toastQueue} onDismiss={dismissToast} />
       <AIChat activePage={activePage} onNavigate={setActivePage} />
+      <NotificationManager />
     </>
   )
 }

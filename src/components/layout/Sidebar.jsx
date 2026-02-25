@@ -5,6 +5,16 @@ import '@styles/layout.css'
 
 const NAV_ITEMS = [
   {
+    id: 'today',
+    label: 'Today',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M9 5.5v3.5l2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     id: 'dashboard',
     label: 'Dashboard',
     icon: (

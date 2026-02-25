@@ -3,12 +3,17 @@ import Modal from '@components/ui/Modal'
 import Button from '@components/ui/Button'
 import { CATEGORY_LIST } from '@utils/categoryConfig'
 
-const DEFAULT_FORM = { name: '', description: '', category: '' }
+const DEFAULT_FORM = { name: '', description: '', category: '', frequency: 'daily' }
 
 export default function HabitForm({ initialData, onSubmit, onClose }) {
   const [form, setForm] = useState(() =>
     initialData
-      ? { name: initialData.name, description: initialData.description, category: initialData.category }
+      ? {
+          name:        initialData.name,
+          description: initialData.description,
+          category:    initialData.category,
+          frequency:   initialData.frequency ?? 'daily',
+        }
       : DEFAULT_FORM
   )
   const [errors, setErrors] = useState({})
@@ -67,6 +72,32 @@ export default function HabitForm({ initialData, onSubmit, onClose }) {
           />
         </div>
 
+        {/* Frequency */}
+        <div className="form-group">
+          <label className="form-label">Frequency</label>
+          <div className="freq-toggle">
+            <button
+              type="button"
+              className={`freq-btn${form.frequency === 'daily' ? ' freq-btn--active' : ''}`}
+              onClick={() => set('frequency', 'daily')}
+            >
+              Daily
+            </button>
+            <button
+              type="button"
+              className={`freq-btn${form.frequency === 'weekly' ? ' freq-btn--active' : ''}`}
+              onClick={() => set('frequency', 'weekly')}
+            >
+              Weekly
+            </button>
+          </div>
+          <span className="form-hint">
+            {form.frequency === 'weekly'
+              ? 'Complete once per week — streak counts in weeks.'
+              : 'Complete once per day — streak counts in days.'}
+          </span>
+        </div>
+
         {/* Category */}
         <div className="form-group">
           <label className="form-label">Category *</label>
@@ -90,9 +121,6 @@ export default function HabitForm({ initialData, onSubmit, onClose }) {
           </div>
           {errors.category && <span className="form-hint" style={{ color: '#f87171' }}>{errors.category}</span>}
         </div>
-
-        {/* Frequency info */}
-        <p className="form-hint">⏱ Frequency: Daily (other options coming in Phase 2)</p>
       </form>
     </Modal>
   )

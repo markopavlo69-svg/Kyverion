@@ -1,7 +1,7 @@
 import '@styles/layout.css'
 import { useAuth } from '@context/AuthContext'
 
-export default function TopBar({ title, onMenuClick }) {
+export default function TopBar({ title, onMenuClick, onSearchClick }) {
   const { signOut } = useAuth()
 
   return (
@@ -12,6 +12,19 @@ export default function TopBar({ title, onMenuClick }) {
         </svg>
       </button>
       <span className="topbar__title">{title}</span>
+
+      <button
+        className="topbar__search-btn"
+        onClick={onSearchClick}
+        aria-label="Search"
+        title="Search (Ctrl+K)"
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.6"/>
+          <path d="M12.5 12.5l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+        </svg>
+      </button>
+
       <button
         className="topbar__logout-btn"
         onClick={signOut}

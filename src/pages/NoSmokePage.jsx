@@ -29,14 +29,16 @@ function formatDuration(totalSeconds) {
 export default function NoSmokePage() {
   const {
     settings, log, record, startTime,
-    NS_MILESTONES, ensureStarted,
-    saveSettings, logSmoke,
+    NS_MILESTONES, NS_QUIT_THRESHOLD, NS_QUIT_XP,
+    ensureStarted, saveSettings, logSmoke,
     getCurrentStreak, checkMilestones,
+    quitForGoodClaimed, claimQuitForGood,
   } = useNoSmoke()
 
   const [now, setNow]                           = useState(Date.now())
   const [showSettings, setShowSettings]         = useState(false)
   const [showConfirm, setShowConfirm]           = useState(false)
+  const [showQuitConfirm, setShowQuitConfirm]   = useState(false)
   const [dailyCigarettes, setDailyCigarettes]   = useState('')
   const [packPrice, setPackPrice]               = useState('')
 
@@ -111,6 +113,13 @@ export default function NoSmokePage() {
     logSmoke()
     setShowConfirm(false)
   }
+
+  const handleClaimQuit = () => {
+    claimQuitForGood()
+    setShowQuitConfirm(false)
+  }
+
+  const canClaimQuit = streak >= NS_QUIT_THRESHOLD && !quitForGoodClaimed
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -214,10 +223,50 @@ export default function NoSmokePage() {
         </div>
       </div>
 
+      {/* ── Quit For Good Achievement ── */}
+      {quitForGoodClaimed ? (
+        <div className="ns-quit-banner">
+          <span className="ns-quit-banner__icon">🚭</span>
+          <div className="ns-quit-banner__text">
+            <strong>Smoke-Free For Life</strong>
+            <span>You claimed your freedom. This is permanent.</span>
+          </div>
+          <span className="ns-quit-banner__xp">+{NS_QUIT_XP} XP</span>
+        </div>
+      ) : canClaimQuit ? (
+        <button className="ns-quit-btn" onClick={() => setShowQuitConfirm(true)}>
+          <span className="ns-quit-btn__icon">🚭</span>
+          <span className="ns-quit-btn__label">I Quit For Good</span>
+          <span className="ns-quit-btn__xp">+{NS_QUIT_XP} XP</span>
+        </button>
+      ) : null}
+
       {/* ── I Smoked Button ── */}
       <button className="ns-smoked-btn" onClick={() => setShowConfirm(true)}>
         💨 I Smoked
       </button>
+
+      {/* ── Quit For Good Confirm Modal ── */}
+      <Modal
+        isOpen={showQuitConfirm}
+        title="🚭 Quit For Good"
+        onClose={() => setShowQuitConfirm(false)}
+        footer={
+          <div className="ns-modal-footer">
+            <Button variant="ghost" onClick={() => setShowQuitConfirm(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleClaimQuit}>Claim +{NS_QUIT_XP} XP</Button>
+          </div>
+        }
+      >
+        <p className="ns-confirm-text">
+          You&apos;ve been smoke-free for{' '}
+          <strong style={{ color: 'var(--cat-vitality)' }}>{formatDuration(streak)}</strong>.
+          {' '}Claiming this means you&apos;re done for good — a permanent achievement worth{' '}
+          <strong style={{ color: 'var(--accent-gold)' }}>{NS_QUIT_XP} XP</strong>.
+          <br /><br />
+          Even if you relapse later, this badge stays. It marks the day you decided to stop.
+        </p>
+      </Modal>
 
       {/* ── Confirm Modal ── */}
       <Modal

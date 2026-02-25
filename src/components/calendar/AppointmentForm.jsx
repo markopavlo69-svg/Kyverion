@@ -11,6 +11,14 @@ const COLORS = [
   { value: '#3b82f6', label: 'Blue'   },
 ]
 
+const RECUR_OPTIONS = [
+  { value: null,      label: 'None'    },
+  { value: 'daily',   label: 'Daily'   },
+  { value: 'weekly',  label: 'Weekly'  },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly',  label: 'Yearly'  },
+]
+
 const DEFAULT_FORM = {
   title:       '',
   description: '',
@@ -19,6 +27,7 @@ const DEFAULT_FORM = {
   endTime:     '',
   location:    '',
   color:       '#00d4ff',
+  recurrence:  null,
 }
 
 export default function AppointmentForm({ initialDate, initialData, onSubmit, onClose }) {
@@ -32,6 +41,7 @@ export default function AppointmentForm({ initialDate, initialData, onSubmit, on
         endTime:     initialData.endTime,
         location:    initialData.location,
         color:       initialData.color,
+        recurrence:  initialData.recurrence ?? null,
       }
     }
     return { ...DEFAULT_FORM, date: initialDate || '' }
@@ -107,6 +117,25 @@ export default function AppointmentForm({ initialDate, initialData, onSubmit, on
               onChange={e => set('endTime', e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Recurrence</label>
+          <div className="appt-recur-row">
+            {RECUR_OPTIONS.map(opt => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                className={`freq-btn${form.recurrence === opt.value ? ' freq-btn--active' : ''}`}
+                onClick={() => set('recurrence', opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {form.recurrence && (
+            <span className="form-hint">Repeats {form.recurrence} from the selected date.</span>
+          )}
         </div>
 
         <div className="form-group">

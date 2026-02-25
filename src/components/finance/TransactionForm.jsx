@@ -6,13 +6,20 @@ function getTodayString() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export default function TransactionForm({ onSubmit, onClose }) {
-  const [type, setType] = useState('expense')
-  const [form, setForm] = useState({
-    amount: '',
+const PERIOD_OPTIONS = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly',  label: 'Yearly'  },
+]
+
+export default function TransactionForm({ onSubmit, onRecurringSubmit, onClose }) {
+  const [type,      setType]      = useState('expense')
+  const [recurring, setRecurring] = useState(false)
+  const [period,    setPeriod]    = useState('monthly')
+  const [form,      setForm]      = useState({
+    amount:      '',
     description: '',
-    date: getTodayString(),
-    category: 'other',
+    date:        getTodayString(),
+    category:    'other',
   })
 
   const categories = type === 'income' ? INCOME_CATEGORY_LIST : EXPENSE_CATEGORY_LIST
@@ -30,7 +37,18 @@ export default function TransactionForm({ onSubmit, onClose }) {
     e.preventDefault()
     const amount = parseFloat(form.amount)
     if (!form.description || !form.date || isNaN(amount) || amount <= 0) return
-    onSubmit({ ...form, type, amount })
+
+    if (recurring && onRecurringSubmit) {
+      const day = parseInt(form.date.slice(8), 10)
+      onRecurringSubmit({
+        type, amount, category: form.category,
+        description: form.description,
+        period, day,
+        startMonth: form.date.slice(0, 7),
+      })
+    } else {
+      onSubmit({ ...form, type, amount })
+    }
     onClose()
   }
 
@@ -81,7 +99,7 @@ export default function TransactionForm({ onSubmit, onClose }) {
             />
           </div>
           <div className="form-field">
-            <label>Date</label>
+            <label>{recurring ? 'Start date' : 'Date'}</label>
             <input
               type="date"
               value={form.date}
@@ -105,12 +123,39 @@ export default function TransactionForm({ onSubmit, onClose }) {
           </select>
         </div>
 
+        {/* Recurring toggle */}
+        <div className="form-field">
+          <label className="tx-recurring-label">
+            <input
+              type="checkbox"
+              checked={recurring}
+              onChange={e => setRecurring(e.target.checked)}
+            />
+            <span>Recurring transaction</span>
+          </label>
+          {recurring && (
+            <div className="tx-period-row">
+              {PERIOD_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`freq-btn${period === opt.value ? ' freq-btn--active' : ''}`}
+                  onClick={() => setPeriod(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              <span className="form-hint">Auto-added each {period === 'monthly' ? 'month' : 'year'} on the same day.</span>
+            </div>
+          )}
+        </div>
+
         <div className="transaction-form__actions">
           <button type="button" className="btn btn--ghost btn--md" onClick={onClose}>
             Cancel
           </button>
           <button type="submit" className="btn btn--primary btn--md">
-            Add Transaction
+            {recurring ? 'Add Recurring' : 'Add Transaction'}
           </button>
         </div>
 

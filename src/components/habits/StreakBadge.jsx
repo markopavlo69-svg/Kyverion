@@ -7,7 +7,15 @@ function getTier(streak) {
   return 'cold'
 }
 
-export default function StreakBadge({ streak }) {
+export default function StreakBadge({ streak, mastered }) {
+  if (mastered) {
+    return (
+      <span className="streak-badge streak-badge--mastered" title="Habit mastered — 90+ day streak achieved">
+        <span className="streak-flame">♛</span>
+        {streak > 0 ? `${streak}d` : 'Mastered'}
+      </span>
+    )
+  }
   const tier = getTier(streak)
   return (
     <span className={`streak-badge streak-badge--${tier}`}>
