@@ -103,7 +103,7 @@
   background: var(--accent-primary);
   border: none;
   border-radius: var(--radius-md);
-  color: #000;
+  color: #fff;
   font-size: var(--text-base);
   font-weight: 600;
   font-family: inherit;

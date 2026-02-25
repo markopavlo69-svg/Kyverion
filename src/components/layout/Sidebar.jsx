@@ -1,4 +1,5 @@
 import { useXP } from '@context/XPContext'
+import { useAuth } from '@context/AuthContext'
 import { getLevelTitle } from '@utils/xpCalculator'
 import '@styles/layout.css'
 
@@ -83,7 +84,8 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar({ activePage, onNavigate, isOpen }) {
-  const { xpData } = useXP()
+  const { xpData }  = useXP()
+  const { signOut } = useAuth()
   const { globalLevel, globalTotalXP } = xpData
 
   return (
@@ -117,6 +119,13 @@ export default function Sidebar({ activePage, onNavigate, isOpen }) {
             <div className="sidebar__level-label">{getLevelTitle(globalLevel)}</div>
             <div className="sidebar__level-xp">{globalTotalXP.toLocaleString()} total XP</div>
           </div>
+        </button>
+
+        <button className="sidebar__logout-btn" onClick={signOut} title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Sign Out</span>
         </button>
       </div>
     </aside>
