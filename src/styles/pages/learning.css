@@ -830,88 +830,145 @@
 
 /* ── Markdown preview output ─────────────────────────────────── */
 .note-panel__preview {
-  padding: var(--space-2) 0;
+  padding: var(--space-3) 0 var(--space-6);
   min-height: 320px;
   font-size: var(--text-sm);
-  line-height: 1.75;
+  line-height: 1.8;
   color: var(--text-secondary);
 }
 
+/* ── Headings ────────────────────────────────────────────────── */
 .md-h1 {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin: var(--space-6) 0 var(--space-3);
-  letter-spacing: 0.02em;
+  margin: var(--space-8) 0 var(--space-3);
+  letter-spacing: 0.03em;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-dim);
+  line-height: 1.2;
 }
+.md-h1:first-child { margin-top: 0; }
 
 .md-h2 {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin: var(--space-5) 0 var(--space-2);
+  margin: var(--space-6) 0 var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--accent-teal);
+  line-height: 1.3;
 }
+.md-h2:first-child { margin-top: 0; }
 
 .md-h3 {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: var(--text-secondary);
-  margin: var(--space-4) 0 var(--space-2);
+  color: var(--accent-teal);
+  margin: var(--space-5) 0 var(--space-2);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
 }
+.md-h3:first-child { margin-top: 0; }
 
+/* ── Body text ──────────────────────────────────────────────── */
 .md-p {
   margin: var(--space-2) 0;
   color: var(--text-secondary);
 }
 
-.md-spacer { height: var(--space-3); }
+/* Bold / italic explicit overrides inside preview */
+.note-panel__preview strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.note-panel__preview em {
+  font-style: italic;
+  opacity: 0.88;
+}
 
-.md-ul, .md-ol {
-  margin: var(--space-2) 0;
-  padding-left: var(--space-6);
+.md-spacer { height: var(--space-4); }
+
+/* ── Lists ──────────────────────────────────────────────────── */
+.md-ul {
+  margin: var(--space-3) 0;
+  padding-left: var(--space-5);
+  list-style: none;
   color: var(--text-secondary);
 }
-
-.md-ul li, .md-ol li { margin: var(--space-1) 0; }
-
-.md-hr {
-  border: none;
-  border-top: 1px solid var(--border-subtle);
-  margin: var(--space-5) 0;
+.md-ul li {
+  margin: var(--space-2) 0;
+  line-height: 1.6;
+  position: relative;
+  padding-left: var(--space-3);
+}
+.md-ul li::before {
+  content: '▸';
+  color: var(--accent-teal);
+  font-size: 0.7em;
+  position: absolute;
+  left: 0;
+  top: 0.2em;
 }
 
+.md-ol {
+  margin: var(--space-3) 0;
+  padding-left: var(--space-6);
+  color: var(--text-secondary);
+  list-style: decimal;
+}
+.md-ol li {
+  margin: var(--space-2) 0;
+  line-height: 1.6;
+}
+.md-ol li::marker { color: var(--accent-teal); font-weight: 700; }
+
+/* ── Divider ────────────────────────────────────────────────── */
+.md-hr {
+  border: none;
+  border-top: 1px solid var(--border-dim);
+  margin: var(--space-6) 0;
+  opacity: 0.5;
+}
+
+/* ── Code blocks ────────────────────────────────────────────── */
 .md-pre {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-left: 3px solid var(--accent-teal);
   border-radius: var(--radius-md);
   padding: var(--space-4);
-  margin: var(--space-3) 0;
+  margin: var(--space-4) 0;
   overflow-x: auto;
 }
 
 .md-pre code {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--accent-teal);
+  font-size: 0.82rem;
+  color: #7dd3fc;
   background: none;
   padding: 0;
   border: none;
+  line-height: 1.7;
+  white-space: pre;
 }
 
+/* ── Inline code ────────────────────────────────────────────── */
 .md-inline-code {
   font-family: var(--font-mono);
-  font-size: 0.85em;
-  color: var(--accent-teal);
-  background: rgba(0, 212, 255, 0.08);
-  border: 1px solid rgba(0, 212, 255, 0.15);
-  border-radius: 3px;
-  padding: 1px 5px;
+  font-size: 0.82em;
+  color: #7dd3fc;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.28);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
+/* ── Empty state ────────────────────────────────────────────── */
 .md-empty {
   color: var(--text-disabled);
   font-style: italic;
