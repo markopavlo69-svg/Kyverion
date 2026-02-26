@@ -99,10 +99,12 @@ export default function NoteEditor({ note, areaId, onBack }) {
   const { updateNote } = useLearning()
   const [title,   setTitle]   = useState(note?.title   ?? '')
   const [content, setContent] = useState(note?.content ?? '')
-  const [preview, setPreview] = useState(false)
-  const taRef    = useRef(null)
-  const saveRef  = useRef(null)
-  const mounted  = useRef(false)
+  // Start in preview if note already has content; new notes start in edit mode
+  const [preview, setPreview] = useState(() => Boolean(note?.content?.trim()))
+  const taRef           = useRef(null)
+  const saveRef         = useRef(null)
+  const mounted         = useRef(false)
+  const pendingFmtRef   = useRef(null)
 
   // Auto-resize textarea
   function autoResize() {
@@ -126,6 +128,30 @@ export default function NoteEditor({ note, areaId, onBack }) {
   useEffect(() => { mounted.current = true }, [])
   useEffect(() => () => clearTimeout(saveRef.current), [])
 
+  // After switching from preview → edit, apply any queued format
+  useEffect(() => {
+    if (!preview && pendingFmtRef.current && taRef.current) {
+      const type = pendingFmtRef.current
+      pendingFmtRef.current = null
+      const ta = taRef.current
+      let result
+      switch (type) {
+        case 'bold':   result = insertAtCursor(ta, '**', '**', 'bold text'); break
+        case 'italic': result = insertAtCursor(ta, '*',  '*',  'italic text'); break
+        case 'h1':     result = prependLine(ta, '# '); break
+        case 'h2':     result = prependLine(ta, '## '); break
+        case 'code':   result = insertAtCursor(ta, '`', '`', 'code'); break
+        case 'ul':     result = prependLine(ta, '- '); break
+        case 'hr':     result = insertAtCursor(ta, '\n---\n', ''); break
+        default: return
+      }
+      setContent(result.value)
+      doSave(title, result.value)
+      // Switch back to preview so the formatted result is visible immediately
+      setPreview(true)
+    }
+  }, [preview]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleTitleChange(e) {
     setTitle(e.target.value)
     doSave(e.target.value, content)
@@ -147,8 +173,14 @@ export default function NoteEditor({ note, areaId, onBack }) {
 
   // Toolbar
   function applyFormat(type) {
+    // If in preview mode, queue the format and switch to edit mode
+    if (preview) {
+      pendingFmtRef.current = type
+      setPreview(false)
+      return
+    }
     const ta = taRef.current
-    if (!ta || preview) return
+    if (!ta) return
     let result
     switch (type) {
       case 'bold':   result = insertAtCursor(ta, '**', '**', 'bold text'); break
@@ -202,9 +234,9 @@ export default function NoteEditor({ note, areaId, onBack }) {
           <button
             className={`md-tool md-tool--toggle${preview ? ' md-tool--active' : ''}`}
             onClick={() => setPreview(v => !v)}
-            title={preview ? 'Edit mode' : 'Preview'}
+            title={preview ? 'Switch to edit mode' : 'Switch to preview'}
           >
-            {preview ? '✏' : '👁'}
+            {preview ? '✏ Edit' : '👁 Preview'}
           </button>
         </div>
       </div>
