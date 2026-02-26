@@ -5,6 +5,7 @@ import { AppointmentProvider } from './AppointmentContext'
 import { NoSmokeProvider }     from './NoSmokeContext'
 import { FinanceProvider }     from './FinanceContext'
 import { LearningProvider }    from './LearningContext'
+import { WorkoutProvider }     from './WorkoutContext'
 import { AIProvider }          from './AIContext'
 
 export function AppProvider({ children }) {
@@ -16,9 +17,11 @@ export function AppProvider({ children }) {
             <NoSmokeProvider>
               <FinanceProvider>
                 <LearningProvider>
-                  <AIProvider>
-                    {children}
-                  </AIProvider>
+                  <WorkoutProvider>
+                    <AIProvider>
+                      {children}
+                    </AIProvider>
+                  </WorkoutProvider>
                 </LearningProvider>
               </FinanceProvider>
             </NoSmokeProvider>

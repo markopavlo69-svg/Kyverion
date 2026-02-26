@@ -14,6 +14,7 @@ const PAGE_TITLES = {
   nosmoke:   'No Smoke',
   finance:   'Finance',
   learning:  'Learning',
+  workout:   'Workout',
 }
 
 export default function AppShell({ activePage, onNavigate, children }) {

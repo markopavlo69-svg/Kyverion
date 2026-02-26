@@ -5,6 +5,7 @@ import { useTasks }           from './TaskContext'
 import { useHabits }          from './HabitContext'
 import { useAppointments }    from './AppointmentContext'
 import { useXP }              from './XPContext'
+import { useWorkout }         from './WorkoutContext'
 import { CHARACTERS, CHARACTER_LIST, DEFAULT_CHARACTER } from '@data/characters'
 import { streamChat }         from '@services/groqService'
 import { buildAppState }      from '@utils/appStateBuilder'
@@ -33,7 +34,8 @@ You can take actions for the user by embedding special tags anywhere in your res
   [ACTION:complete_task:TASK_ID]                 — mark a task as completed
   [ACTION:add_task:TITLE|PRIORITY|CATEGORY]      — add task (priority: low/medium/high; category: strength/intelligence/creativity/discipline/social/vitality)
   [ACTION:add_appointment:TITLE|DATE|TIME|DESC]  — add appointment (DATE: YYYY-MM-DD, TIME: HH:MM or blank)
-  [ACTION:navigate:PAGE]                         — navigate (pages: dashboard/tasks/habits/calendar/finance/learning/nosmoke/profile)
+  [ACTION:add_workout:TITLE|CATEGORY]            — create a workout session (category: calisthenics/gym/other)
+  [ACTION:navigate:PAGE]                         — navigate (pages: dashboard/tasks/habits/calendar/finance/learning/nosmoke/workout/profile)
   [ACTION:remember:FACT]                         — persist an important fact about the user to your memory (use sparingly)
 
 Rules:
@@ -52,6 +54,7 @@ export function AIProvider({ children }) {
   const { habits, completeHabitToday }         = useHabits()
   const { appointments, addAppointment }       = useAppointments()
   const { xpData }                             = useXP()
+  const { sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs, addEmptyWorkout } = useWorkout()
 
   const [activeCharacterId, setActiveCharacterId] = useState(DEFAULT_CHARACTER)
   const [chatHistories, setChatHistories] = useState(
@@ -69,6 +72,7 @@ export function AIProvider({ children }) {
   const habitsRef         = useRef(habits)
   const appointmentsRef   = useRef(appointments)
   const xpDataRef         = useRef(xpData)
+  const workoutDataRef    = useRef({ sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs })
   const historiesRef      = useRef(chatHistories)
   const memoriesRef       = useRef(characterMemories)
   const activeCharRef     = useRef(activeCharacterId)
@@ -81,6 +85,9 @@ export function AIProvider({ children }) {
   useEffect(() => { habitsRef.current       = habits         }, [habits])
   useEffect(() => { appointmentsRef.current = appointments   }, [appointments])
   useEffect(() => { xpDataRef.current       = xpData         }, [xpData])
+  useEffect(() => {
+    workoutDataRef.current = { sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs }
+  }, [workoutSessions, workoutStreak, workoutPRs])
   useEffect(() => { historiesRef.current    = chatHistories  }, [chatHistories])
   useEffect(() => { memoriesRef.current     = characterMemories }, [characterMemories])
   useEffect(() => { activeCharRef.current   = activeCharacterId }, [activeCharacterId])
@@ -208,6 +215,7 @@ export function AIProvider({ children }) {
         appointments: appointmentsRef.current,
         xpData:       xpDataRef.current,
         activePage:   activePageRef.current,
+        workoutData:  workoutDataRef.current,
       })
       const memory       = memoriesRef.current[charId] || ''
       const systemPrompt = buildSystemPrompt(character, memory, appState)
@@ -251,6 +259,7 @@ export function AIProvider({ children }) {
         completeTask,
         addTask,
         addAppointment,
+        addEmptyWorkout,
         navigate:          navigateFnRef.current,
         remember:          rememberFact,
       })

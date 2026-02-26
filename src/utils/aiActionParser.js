@@ -8,6 +8,7 @@
 //   [ACTION:complete_task:TASK_ID]
 //   [ACTION:add_task:TITLE|PRIORITY|CATEGORY]
 //   [ACTION:add_appointment:TITLE|DATE|TIME|DESCRIPTION]
+//   [ACTION:add_workout:TITLE|CATEGORY]
 //   [ACTION:navigate:PAGE_NAME]
 //   [ACTION:remember:FACT_TO_REMEMBER]
 // ============================================================
@@ -95,6 +96,19 @@ export async function executeActions(actions, ctx) {
           ctx.addAppointment({ title, date, time, description })
           result.description = `Appointment "${title}" added for ${date}${time ? ' at ' + time : ''}`
           result.success = true
+          break
+        }
+
+        case 'add_workout': {
+          const parts    = params.split('|')
+          const title    = parts[0]?.trim() || ''
+          const category = parts[1]?.trim() || 'other'
+          if (ctx.addEmptyWorkout) {
+            await ctx.addEmptyWorkout(title, category)
+            result.description = `Workout session "${title || category}" created`
+            result.success = true
+            if (ctx.navigate) ctx.navigate('workout')
+          }
           break
         }
 

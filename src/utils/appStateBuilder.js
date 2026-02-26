@@ -19,9 +19,10 @@ function offsetDateStr(dateStr, days) {
  * @param {Array}  params.appointments - from useAppointments()
  * @param {Object} params.xpData       - from useXP()
  * @param {string} params.activePage   - current page name
+ * @param {Object} params.workoutData  - { sessions, streak, prs } from useWorkout()
  * @returns {string}
  */
-export function buildAppState({ tasks, habits, appointments, xpData, activePage }) {
+export function buildAppState({ tasks, habits, appointments, xpData, activePage, workoutData }) {
   const today   = new Date().toISOString().slice(0, 10)
   const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   const in7Days = offsetDateStr(today, 7)
@@ -83,6 +84,21 @@ export function buildAppState({ tasks, habits, appointments, xpData, activePage 
       lines.push(`  "${a.title}"${time} — ${a.date} id:${a.id}`)
     }
     lines.push('')
+  }
+
+  // ── Workout summary ────────────────────────────────────────
+  if (workoutData) {
+    const { sessions = [], streak = 0, prs = {} } = workoutData
+    if (sessions.length > 0) {
+      lines.push(`WORKOUTS: ${sessions.length} total  Streak: ${streak}d  PRs: ${Object.keys(prs).length}`)
+      const recent = sessions.slice(0, 3)
+      for (const s of recent) {
+        lines.push(`  ${s.date} [${s.category}] "${s.title}" — ${s.exercises.length} exercises`)
+      }
+      const topPRs = Object.entries(prs).slice(0, 3).map(([n, p]) => `${n}: ${p.weight}${p.unit}`).join(', ')
+      if (topPRs) lines.push(`  Top PRs: ${topPRs}`)
+      lines.push('')
+    }
   }
 
   // ── XP stats ──────────────────────────────────────────────

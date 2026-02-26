@@ -103,6 +103,18 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    id: 'workout',
+    label: 'Workout',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M1 9h2.5M14.5 9H17M4.5 9h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="3.5" y="6" width="1.5" height="6" rx="0.75" fill="currentColor"/>
+        <rect x="13" y="6" width="1.5" height="6" rx="0.75" fill="currentColor"/>
+        <rect x="6" y="7.5" width="6" height="3" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function Sidebar({ activePage, onNavigate, isOpen }) {

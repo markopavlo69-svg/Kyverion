@@ -10,6 +10,7 @@ import ProfilePage from '@pages/ProfilePage'
 import NoSmokePage from '@pages/NoSmokePage'
 import FinancePage from '@pages/FinancePage'
 import LearningPage from '@pages/LearningPage'
+import WorkoutPage  from '@pages/WorkoutPage'
 import DashboardPage from '@pages/DashboardPage'
 import TodayPage from '@pages/TodayPage'
 import XPFeedToast from '@components/profile/XPFeedToast'
@@ -39,6 +40,7 @@ function AppInner() {
       case 'nosmoke':   return <NoSmokePage />
       case 'finance':   return <FinancePage />
       case 'learning':  return <LearningPage />
+      case 'workout':   return <WorkoutPage />
       default:          return <DashboardPage onNavigate={setActivePage} />
     }
   }
