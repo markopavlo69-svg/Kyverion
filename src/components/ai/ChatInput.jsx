@@ -31,9 +31,25 @@ export default function ChatInput({ onSend, disabled }) {
     setText(el.value)
   }
 
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
+  const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('Unsupported image format. Please use JPEG, PNG, GIF, or WebP.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert('Image is too large. Please use an image under 5 MB.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (ev) => setImageDataUrl(ev.target.result)
     reader.readAsDataURL(file)

@@ -39,6 +39,18 @@ export function getXPForTask(priority) {
 
 export const HABIT_MASTERY_THRESHOLD = 90
 
+/**
+ * Returns the daily XP awarded for completing a habit.
+ *
+ * INTENTIONAL DESIGN: mastered habits give LESS daily XP (5) than
+ * non-mastered habits (15). The idea is that once a habit is fully
+ * automated (≥90-day streak), the big reward is the one-time mastery
+ * bonus (+500 XP via getStreakBonusXP). Routine completions after that
+ * are low-value to encourage pursuing *new* habits over coasting.
+ *
+ * Non-mastered → 15 XP  (actively building the habit)
+ * Mastered     →  5 XP  (maintenance; mastery milestone already rewarded)
+ */
 export function getXPForHabit(mastered = false) {
   return mastered ? 5 : 15
 }

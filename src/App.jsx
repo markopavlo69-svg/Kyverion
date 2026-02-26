@@ -16,6 +16,7 @@ import XPFeedToast from '@components/profile/XPFeedToast'
 import { useXP } from '@context/XPContext'
 import AIChat from '@components/ai/AIChat'
 import { useNotifications } from '@hooks/useNotifications'
+import ErrorBoundary from '@components/ui/ErrorBoundary'
 
 function NotificationManager() {
   useNotifications()
@@ -78,8 +79,10 @@ export default function App() {
 
   // Data providers only mount once user is authenticated
   return (
-    <AppProvider>
-      <AppInner />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppInner />
+      </AppProvider>
+    </ErrorBoundary>
   )
 }
