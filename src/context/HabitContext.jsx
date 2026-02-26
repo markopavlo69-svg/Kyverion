@@ -21,20 +21,37 @@ function computeStreak(completions) {
   return streak
 }
 
-function computeWeeklyStreak(completions) {
+// Returns how many completions per week are required (0 = daily habit)
+export function getWeeklyTarget(frequency) {
+  if (!frequency || frequency === 'daily') return 0
+  if (frequency === 'weekly') return 1                    // backward-compat
+  const m = String(frequency).match(/^(\d+)x$/)
+  return m ? parseInt(m[1], 10) : 1
+}
+
+function computeWeeklyStreak(completions, target = 1) {
   if (!completions || completions.length === 0) return 0
-  const weekSet    = new Set(completions.map(c => getISOWeekKey(c.date)))
-  const today      = getTodayString()
-  const thisWeek   = getISOWeekKey(today)
-  const lastWeek   = getISOWeekKey(offsetDate(today, -7))
 
-  let startWeek = weekSet.has(thisWeek) ? thisWeek : weekSet.has(lastWeek) ? lastWeek : null
-  if (!startWeek) return 0
+  // Count completions per ISO-week
+  const weekCounts = {}
+  for (const c of completions) {
+    const wk = getISOWeekKey(c.date)
+    weekCounts[wk] = (weekCounts[wk] || 0) + 1
+  }
+  // A week is "complete" when count >= target
+  const completedWeeks = new Set(
+    Object.entries(weekCounts).filter(([, cnt]) => cnt >= target).map(([wk]) => wk)
+  )
 
-  // Walk back week by week
+  const today    = getTodayString()
+  const thisWeek = getISOWeekKey(today)
+  const lastWeek = getISOWeekKey(offsetDate(today, -7))
+
+  if (!completedWeeks.has(thisWeek) && !completedWeeks.has(lastWeek)) return 0
+
   let streak = 0
-  let checkDate = weekSet.has(thisWeek) ? today : offsetDate(today, -7)
-  while (weekSet.has(getISOWeekKey(checkDate))) {
+  let checkDate = completedWeeks.has(thisWeek) ? today : offsetDate(today, -7)
+  while (completedWeeks.has(getISOWeekKey(checkDate))) {
     streak++
     checkDate = offsetDate(checkDate, -7)
   }
@@ -83,9 +100,9 @@ export function HabitProvider({ children }) {
   const activeHabits = useMemo(() =>
     habits.map(h => ({
       ...h,
-      currentStreak: h.frequency === 'weekly'
-        ? computeWeeklyStreak(h.completions)
-        : computeStreak(h.completions),
+      currentStreak: h.frequency === 'daily'
+        ? computeStreak(h.completions)
+        : computeWeeklyStreak(h.completions, getWeeklyTarget(h.frequency)),
     })),
     [habits]
   )
@@ -138,17 +155,25 @@ export function HabitProvider({ children }) {
     const today = getTodayString()
     const habit = habits.find(h => h.id === id)
     if (!habit) return
-    // For weekly habits: already done if completed any day this week
-    if (habit.frequency === 'weekly') {
-      const thisWeek = getISOWeekKey(today)
-      if (habit.completions.some(c => getISOWeekKey(c.date) === thisWeek)) return
+
+    const isNxWeekly    = habit.frequency !== 'daily'
+    const weeklyTarget  = isNxWeekly ? getWeeklyTarget(habit.frequency) : 0
+
+    if (isNxWeekly) {
+      const thisWeek   = getISOWeekKey(today)
+      const weeklyDone = habit.completions.filter(c => getISOWeekKey(c.date) === thisWeek).length
+      // Allow at most once per calendar day, and at most N times per week
+      if (habit.completions.some(c => c.date === today)) return
+      if (weeklyDone >= weeklyTarget) return
     } else {
       if (habit.completions.some(c => c.date === today)) return
     }
 
     const newCompletion  = { date: today, completedAt: new Date().toISOString() }
     const newCompletions = [...habit.completions, newCompletion]
-    const newStreak      = computeStreak(newCompletions)
+    const newStreak      = isNxWeekly
+      ? computeWeeklyStreak(newCompletions, weeklyTarget)
+      : computeStreak(newCompletions)
     const newLongest     = Math.max(habit.longestStreak ?? 0, newStreak)
 
     // Award XP — reduced to maintenance rate once habit is mastered (longestStreak >= 90)
@@ -183,15 +208,18 @@ export function HabitProvider({ children }) {
 
   const getAllHabitsStatusForDate = useCallback((dateStr) => {
     const weekKey = getISOWeekKey(dateStr)
-    return activeHabits.map(h => ({
-      habitId:   h.id,
-      name:      h.name,
-      category:  h.category,
-      frequency: h.frequency,
-      completed: h.frequency === 'weekly'
-        ? h.completions.some(c => getISOWeekKey(c.date) === weekKey)
-        : h.completions.some(c => c.date === dateStr),
-    }))
+    return activeHabits.map(h => {
+      const isNx = h.frequency !== 'daily'
+      let completed
+      if (isNx) {
+        const target = getWeeklyTarget(h.frequency)
+        const cnt    = h.completions.filter(c => getISOWeekKey(c.date) === weekKey).length
+        completed    = cnt >= target
+      } else {
+        completed = h.completions.some(c => c.date === dateStr)
+      }
+      return { habitId: h.id, name: h.name, category: h.category, frequency: h.frequency, completed }
+    })
   }, [activeHabits])
 
   return (

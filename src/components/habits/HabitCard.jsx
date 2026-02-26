@@ -8,27 +8,46 @@ import { getTodayString, getLastNDays, getLastNWeeks, getISOWeekKey } from '@uti
 import { HABIT_MASTERY_THRESHOLD } from '@utils/xpCalculator'
 import '@styles/pages/habits.css'
 
+// Local helper — mirrors getWeeklyTarget from HabitContext
+function weeklyTarget(frequency) {
+  if (!frequency || frequency === 'daily') return 0
+  if (frequency === 'weekly') return 1
+  const m = String(frequency).match(/^(\d+)x$/)
+  return m ? parseInt(m[1], 10) : 1
+}
+
 export default function HabitCard({ habit, onComplete, onDelete, onEdit }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const today        = getTodayString()
-  const isWeekly     = habit.frequency === 'weekly'
-  const catColor     = getCategoryColor(habit.category)
-  const catName      = getCategoryName(habit.category)
-  const isMastered   = (habit.longestStreak ?? 0) >= HABIT_MASTERY_THRESHOLD
+  const today      = getTodayString()
+  const isNxWeekly = habit.frequency !== 'daily'
+  const wkTarget   = isNxWeekly ? weeklyTarget(habit.frequency) : 0
+  const catColor   = getCategoryColor(habit.category)
+  const catName    = getCategoryName(habit.category)
+  const isMastered = (habit.longestStreak ?? 0) >= HABIT_MASTERY_THRESHOLD
 
-  // Completion check
-  const isCompletedToday = isWeekly
-    ? habit.completions.some(c => getISOWeekKey(c.date) === getISOWeekKey(today))
-    : habit.completions.some(c => c.date === today)
+  // Count completions for the current ISO-week
+  const thisWeek     = getISOWeekKey(today)
+  const thisWeekDone = isNxWeekly
+    ? habit.completions.filter(c => getISOWeekKey(c.date) === thisWeek).length
+    : 0
+  const isWeeklyMet  = isNxWeekly && thisWeekDone >= wkTarget
 
-  // Dots: 7 days for daily, 4 weeks for weekly
+  // The complete button is "done" when: today is already logged OR weekly target met
+  const isDoneToday      = habit.completions.some(c => c.date === today)
+  const isCompletedToday = isNxWeekly ? (isDoneToday || isWeeklyMet) : isDoneToday
+
+  // Dots: 4 weeks for weekly habits (done = that week's count >= target), 7 days for daily
   const completedDates = new Set(habit.completions.map(c => c.date))
-  const completedWeeks = new Set(habit.completions.map(c => getISOWeekKey(c.date)))
+  const weekCounts     = {}
+  for (const c of habit.completions) {
+    const wk = getISOWeekKey(c.date)
+    weekCounts[wk] = (weekCounts[wk] || 0) + 1
+  }
 
-  const dots = isWeekly
+  const dots = isNxWeekly
     ? getLastNWeeks(today, 4).map((wk, i) => ({
         key:   wk,
-        done:  completedWeeks.has(wk),
+        done:  (weekCounts[wk] ?? 0) >= wkTarget,
         today: i === 3,
       }))
     : getLastNDays(today, 7).map((d, i) => ({
@@ -63,7 +82,16 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit }) {
         <div className="habit-card__name">{habit.name}</div>
         <div className="habit-card__meta">
           <CategoryBadge categoryId={habit.category} name={catName} color={catColor} />
-          {isWeekly && <span className="habit-freq-badge">Weekly</span>}
+          {isNxWeekly && (
+            <span className="habit-freq-badge">
+              {wkTarget === 1 ? 'Weekly' : `${wkTarget}×/wk`}
+            </span>
+          )}
+          {isNxWeekly && wkTarget > 1 && (
+            <span className={`habit-weekly-progress${isWeeklyMet ? ' habit-weekly-progress--done' : ''}`}>
+              {thisWeekDone}/{wkTarget}
+            </span>
+          )}
           <StreakBadge streak={habit.currentStreak} mastered={isMastered} />
           {/* Dots: 7 days or 4 weeks */}
           <div className="habit-dots">
@@ -109,9 +137,11 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit }) {
           className={`habit-complete-btn habit-complete-btn--${isCompletedToday ? 'done' : 'pending'}${isMastered ? ' habit-complete-btn--mastered' : ''}`}
           onClick={() => !isCompletedToday && onComplete(habit.id)}
           disabled={isCompletedToday}
-          title={isCompletedToday
-            ? (isWeekly ? 'Done for this week!' : 'Done for today!')
-            : isMastered ? 'Maintain your habit' : 'Mark complete'}
+          title={
+            isWeeklyMet  ? `${wkTarget}/${wkTarget} done this week!` :
+            isDoneToday  ? (isNxWeekly ? `${thisWeekDone}/${wkTarget} this week — come back tomorrow` : 'Done for today!') :
+            isMastered   ? 'Maintain your habit' : 'Mark complete'
+          }
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 8l4 4 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

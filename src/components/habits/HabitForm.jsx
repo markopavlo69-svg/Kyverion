@@ -85,16 +85,42 @@ export default function HabitForm({ initialData, onSubmit, onClose }) {
             </button>
             <button
               type="button"
-              className={`freq-btn${form.frequency === 'weekly' ? ' freq-btn--active' : ''}`}
-              onClick={() => set('frequency', 'weekly')}
+              className={`freq-btn${form.frequency !== 'daily' ? ' freq-btn--active' : ''}`}
+              onClick={() => { if (form.frequency === 'daily') set('frequency', '1x') }}
             >
               Weekly
             </button>
           </div>
+
+          {/* Times-per-week picker — visible when Weekly is selected */}
+          {form.frequency !== 'daily' && (() => {
+            const cur = form.frequency === 'weekly' ? 1 : (parseInt(form.frequency) || 1)
+            return (
+              <div className="freq-times-row">
+                <span className="freq-times-label">×/week:</span>
+                {[1, 2, 3, 4, 5, 6, 7].map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`freq-times-btn${cur === n ? ' freq-times-btn--active' : ''}`}
+                    onClick={() => set('frequency', `${n}x`)}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )
+          })()}
+
           <span className="form-hint">
-            {form.frequency === 'weekly'
-              ? 'Complete once per week — streak counts in weeks.'
-              : 'Complete once per day — streak counts in days.'}
+            {form.frequency === 'daily'
+              ? 'Complete once per day — streak counts in days.'
+              : (() => {
+                  const n = form.frequency === 'weekly' ? 1 : (parseInt(form.frequency) || 1)
+                  return n === 1
+                    ? 'Complete once per week — streak counts in weeks.'
+                    : `Complete ${n}× per week — streak advances when weekly target is hit.`
+                })()}
           </span>
         </div>
 
