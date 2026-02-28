@@ -283,7 +283,11 @@ export async function executeActions(actions, ctx) {
         case 'update_stat': {
           // params format: "trust_level|+8" or "respect_level|-5"
           const [rawStat, rawDelta] = params.split('|')
-          const statName = rawStat?.trim()
+          // Normalize: allow shorthand ("respect") or full name ("respect_level")
+          const rawStatName = rawStat?.trim()
+          const statName = rawStatName && !rawStatName.endsWith('_level')
+            ? `${rawStatName}_level`
+            : rawStatName
           const delta    = parseInt(rawDelta?.trim(), 10)
           const validStats = ['respect_level', 'trust_level', 'attachment_level', 'attraction_level']
 
