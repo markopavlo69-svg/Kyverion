@@ -118,6 +118,39 @@ export function LearningProvider({ children }) {
     setActiveSession(null)
   }, [activeSession, areas, awardXP, user.id])
 
+  // ── Log a session directly (AI-triggered, no timer) ──────────────────────
+  const logSession = useCallback((areaId, durationMinutes) => {
+    const durationSeconds = Math.round(Math.max(1, durationMinutes) * 60)
+    const xpEarned        = Math.floor(durationMinutes) * 2
+    const area            = areas.find(a => a.id === areaId)
+    if (!area) { console.warn('logSession: area not found', areaId); return null }
+    const session = {
+      id:              genId(),
+      startedAt:       new Date().toISOString(),
+      endedAt:         new Date().toISOString(),
+      durationSeconds,
+      xpAwarded:       xpEarned,
+      date:            todayKey(),
+    }
+    const newTotal = (area.totalSeconds ?? 0) + durationSeconds
+
+    setAreas(prev => prev.map(a =>
+      a.id !== areaId ? a : { ...a, sessions: [...(a.sessions ?? []), session], totalSeconds: newTotal }
+    ))
+
+    supabase.from('learning_sessions').insert({
+      id: session.id, area_id: areaId, user_id: user.id,
+      started_at: session.startedAt, ended_at: session.endedAt,
+      duration_seconds: durationSeconds, xp_awarded: xpEarned, date: session.date,
+    }).then(({ error }) => { if (error) console.error('logSession insert error:', error) })
+
+    supabase.from('learning_areas').update({ total_seconds: newTotal }).eq('id', areaId)
+      .then(({ error }) => { if (error) console.error('logSession area update error:', error) })
+
+    if (xpEarned > 0) awardXP(area.category ?? 'intelligence', xpEarned)
+    return session.id
+  }, [areas, awardXP, user.id])
+
   // ── Area CRUD ─────────────────────────────────────────────────────────────
   const addArea = useCallback((area) => {
     const newArea = {
@@ -238,7 +271,7 @@ export function LearningProvider({ children }) {
   }, [areas])
 
   const value = {
-    areas, activeSession, startSession, stopSession,
+    areas, activeSession, startSession, stopSession, logSession,
     addArea, updateArea, deleteArea,
     addNote, updateNote, deleteNote,
     addLink, deleteLink,

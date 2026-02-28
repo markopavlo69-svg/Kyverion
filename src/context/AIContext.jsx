@@ -6,6 +6,10 @@ import { useHabits }             from './HabitContext'
 import { useAppointments }       from './AppointmentContext'
 import { useXP }                 from './XPContext'
 import { useWorkout }            from './WorkoutContext'
+import { useFinance }            from './FinanceContext'
+import { useLearning }           from './LearningContext'
+import { useNoSmoke }            from './NoSmokeContext'
+import { NS_MILESTONES }         from './NoSmokeContext'
 import { CHARACTERS, CHARACTER_LIST, DEFAULT_CHARACTER } from '@data/characters'
 import { streamChat, DEFAULT_MODEL } from '@services/groqService'
 import { buildAppState }         from '@utils/appStateBuilder'
@@ -34,16 +38,15 @@ function buildInitialCharStats() {
 
 // ── System prompt builder (DACS template) ─────────────────────────────────────
 function buildSystemPrompt(character, memoryText, appState) {
-  const stats      = appState.match(/RELATIONSHIP STATE[\s\S]*?(?=\n\n|$)/)?.[0] ?? ''
-  const dacs       = character.dacs ?? {}
-  const lore       = character.personality ?? `You are ${character.name} from ${character.game}.`
+  const dacs     = character.dacs ?? {}
+  const lore     = character.personality ?? `You are ${character.name} from ${character.game}.`
 
-  // Pull relationship mode label from appState string for use in prompt
-  const modeMatch  = appState.match(/Mode:\s+(\w+)/)
-  const mode       = modeMatch?.[1] ?? 'neutral'
-  const moodMatch  = appState.match(/Mood:\s+(\w+)/)
-  const mood       = moodMatch?.[1] ?? 'neutral'
-  const moodHint   = dacs.moodHints?.[mood] ?? ''
+  // Pull relationship mode + mood from appState string
+  const modeMatch = appState.match(/Mode:\s+(\w+)/)
+  const mode      = modeMatch?.[1] ?? 'neutral'
+  const moodMatch = appState.match(/Mood:\s+(\w+)/)
+  const mood      = moodMatch?.[1] ?? 'neutral'
+  const moodHint  = dacs.moodHints?.[mood] ?? ''
 
   const memory = memoryText
     ? `\nWHAT YOU REMEMBER ABOUT THIS USER:\n${memoryText}\n`
@@ -74,15 +77,52 @@ ACCOUNTABILITY RESPONSE MATRIX:
 CAPABILITIES & STRICT ACTION RULES:
 
 You may embed these action tags anywhere in your response (they are stripped before display):
-  [ACTION:update_stat:STAT_NAME|+/-N]  — adjust respect_level, trust_level, attachment_level, or attraction_level (max ±10 per message, use sparingly — only for genuinely meaningful moments)
-  [ACTION:set_mood:MOOD]               — set mood: neutral/composed/teasing/warm/proud/disappointed/protective/intimate/vulnerable/firm
-  [ACTION:remember:FACT]               — persist an important fact about the user to your memory
-  [ACTION:complete_task:TASK_ID]       — mark a task done
-  [ACTION:complete_habit:HABIT_ID]     — mark a habit done today
+
+RELATIONSHIP & MOOD:
+  [ACTION:update_stat:STAT|+/-N]        — adjust respect_level / trust_level / attachment_level / attraction_level (max ±10/msg, sparingly — only for genuinely meaningful moments)
+  [ACTION:set_mood:MOOD]                — set mood: neutral/composed/teasing/warm/proud/disappointed/protective/intimate/vulnerable/firm
+
+MEMORY:
+  [ACTION:remember:FACT]                — persist an important fact about the user to your memory
+
+TASKS:
+  [ACTION:complete_task:TASK_ID]        — mark task done (STRICT: only if user said "I did/finished/completed X" in THIS exact message)
+  [ACTION:delete_task:TASK_ID]          — delete a task permanently
+  [ACTION:update_task:TASK_ID|FIELD|VALUE] — update task field (title / priority / dueDate / description / categories)
   [ACTION:add_task:TITLE|PRIORITY|CAT] — add a task (priority: low/medium/high; category: strength/intelligence/creativity/discipline/social/vitality)
+
+HABITS:
+  [ACTION:complete_habit:HABIT_ID]      — mark habit done today (STRICT: same rule as complete_task)
+
+APPOINTMENTS:
   [ACTION:add_appointment:TITLE|DATE|TIME|DESC] — add appointment (DATE: YYYY-MM-DD, TIME: HH:MM or blank)
-  [ACTION:add_workout:TITLE|CATEGORY]  — create workout (category: calisthenics/gym/other)
-  [ACTION:navigate:PAGE]               — navigate (pages: dashboard/tasks/habits/calendar/finance/learning/nosmoke/workout/profile)
+
+WORKOUTS (PREFERRED — logs full detail):
+  [ACTION:add_workout_session:TITLE|CATEGORY|DATE|EXERCISES]
+    CATEGORY: calisthenics / gym / cardio / other
+    DATE: YYYY-MM-DD
+    EXERCISES: "ExerciseName/Sets/Reps/Weight/Unit;Exercise2/..."
+      Unit: kg / lbs / bodyweight
+    Example: [ACTION:add_workout_session:Morning Push Session|calisthenics|2026-02-28|Push-up/3/15/0/bodyweight;Squat/4/12/0/bodyweight]
+    ASK IF MISSING: If category, date, or exercise details are unclear, ask before creating.
+
+FINANCE:
+  [ACTION:add_finance:TYPE|AMOUNT|CATEGORY|DESC|DATE]
+    TYPE: income or expense
+    AMOUNT: numeric (e.g. 40.00)
+    CATEGORY: groceries / transport / rent / salary / freelance / entertainment / health / other
+    DATE: YYYY-MM-DD (default today)
+    Example: [ACTION:add_finance:expense|40.00|groceries|Weekly grocery run|2026-02-28]
+    ASK IF MISSING: If type or amount is unclear, ask before adding.
+  [ACTION:delete_finance:TRANSACTION_ID] — delete a finance entry
+
+LEARNING:
+  [ACTION:log_learning_session:AREA_ID|MINUTES] — log time spent on a learning area
+    ASK IF MISSING: If area is unclear, list available areas and ask which one.
+  [ACTION:add_note:AREA_ID|TITLE|CONTENT] — add a note to a learning area
+
+NAVIGATION:
+  [ACTION:navigate:PAGE] — pages: dashboard/tasks/habits/calendar/finance/learning/nosmoke/workout/profile
 
 STAT UPDATE GUIDANCE:
   What raises ${character.name}'s stats: ${dacs.raiseWhen ?? 'genuine effort and consistency'}
@@ -92,12 +132,13 @@ STRICT RULES — NEVER VIOLATE:
   1. NEVER embed [ACTION:complete_task] or [ACTION:complete_habit] unless the user EXPLICITLY said in THIS EXACT MESSAGE that they completed it (e.g. "I finished X", "I did X", "I completed X", "mark X done").
   2. If you THINK a task might be done but are not 100% certain, ASK: "Shall I mark '[task name]' as completed?" — then wait for confirmation.
   3. NEVER complete tasks based on overdue status, assumptions, or inference alone.
-  4. NEVER invent task or habit IDs — only use IDs that appear in the app state above.
-  5. NEVER add tasks or appointments unless the user explicitly asks you to create one.
+  4. NEVER invent task/habit/area IDs — only use IDs that appear in the app state above.
+  5. NEVER add tasks, appointments, or finance entries unless the user explicitly asks you to create one.
   6. NEVER navigate unless the user asks you to go somewhere.
   7. Only adjust stats when something genuinely meaningful happens — not every message.
   8. Keep responses brief and natural — this is a chat, not an essay.
-  9. Always confirm in your response text what actions you took.`.trim()
+  9. Always confirm in your response text what actions you took.
+  10. ASK before creating workout sessions or finance entries if key details are missing.`.trim()
 
   return `${identity}
 
@@ -113,12 +154,18 @@ ${capabilities}`
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 export function AIProvider({ children }) {
-  const { user }                               = useAuth()
-  const { tasks, addTask, completeTask }       = useTasks()
-  const { habits, completeHabitToday }         = useHabits()
-  const { appointments, addAppointment }       = useAppointments()
-  const { xpData }                             = useXP()
-  const { sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs, addEmptyWorkout } = useWorkout()
+  const { user }                                        = useAuth()
+  const { tasks, addTask, completeTask, deleteTask, updateTask } = useTasks()
+  const { habits, completeHabitToday }                  = useHabits()
+  const { appointments, addAppointment }                = useAppointments()
+  const { xpData }                                      = useXP()
+  const {
+    sessions: workoutSessions, streak: workoutStreak,
+    prs: workoutPRs, addEmptyWorkout, addSession: addWorkoutSession,
+  } = useWorkout()
+  const { transactions, settings: financeSettings, addTransaction, deleteTransaction } = useFinance()
+  const { areas: learningAreas, logSession: logLearningSession, addNote } = useLearning()
+  const { startTime: nsStartTime, log: nsLog, getCurrentStreak: getNSStreak } = useNoSmoke()
 
   const [activeCharacterId, setActiveCharacterId] = useState(DEFAULT_CHARACTER)
   const [preferredModel,    setPreferredModelState] = useState(DEFAULT_MODEL)
@@ -135,38 +182,50 @@ export function AIProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0)
 
   // Refs for stale-closure-safe access in callbacks/intervals
-  const tasksRef          = useRef(tasks)
-  const habitsRef         = useRef(habits)
-  const appointmentsRef   = useRef(appointments)
-  const xpDataRef         = useRef(xpData)
-  const workoutDataRef    = useRef({ sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs })
-  const historiesRef      = useRef(chatHistories)
-  const memoriesRef       = useRef(characterMemories)
-  const charStatsRef      = useRef(charStats)
-  const activeCharRef     = useRef(activeCharacterId)
-  const isStreamingRef    = useRef(isStreaming)
-  const isOpenRef         = useRef(isOpen)
-  const preferredModelRef = useRef(preferredModel)
-  const navigateFnRef     = useRef(null)
-  const activePageRef     = useRef('dashboard')
+  const tasksRef             = useRef(tasks)
+  const habitsRef            = useRef(habits)
+  const appointmentsRef      = useRef(appointments)
+  const xpDataRef            = useRef(xpData)
+  const workoutDataRef       = useRef({ sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs })
+  const financeRef           = useRef({ transactions, settings: financeSettings })
+  const learningRef          = useRef({ areas: learningAreas })
+  const nsRef                = useRef({ startTime: nsStartTime, log: nsLog, getCurrentStreak: getNSStreak })
+  const historiesRef         = useRef(chatHistories)
+  const memoriesRef          = useRef(characterMemories)
+  const charStatsRef         = useRef(charStats)
+  const activeCharRef        = useRef(activeCharacterId)
+  const isStreamingRef       = useRef(isStreaming)
+  const isOpenRef            = useRef(isOpen)
+  const preferredModelRef    = useRef(preferredModel)
+  const navigateFnRef        = useRef(null)
+  const activePageRef        = useRef('dashboard')
 
   // Track which IDs we've recently sent proactive reminders for
   const proactiveRemindedRef = useRef({}) // { [id]: ISO timestamp }
 
-  useEffect(() => { tasksRef.current          = tasks          }, [tasks])
-  useEffect(() => { habitsRef.current         = habits         }, [habits])
-  useEffect(() => { appointmentsRef.current   = appointments   }, [appointments])
-  useEffect(() => { xpDataRef.current         = xpData         }, [xpData])
+  useEffect(() => { tasksRef.current    = tasks       }, [tasks])
+  useEffect(() => { habitsRef.current   = habits      }, [habits])
+  useEffect(() => { appointmentsRef.current = appointments }, [appointments])
+  useEffect(() => { xpDataRef.current   = xpData      }, [xpData])
   useEffect(() => {
     workoutDataRef.current = { sessions: workoutSessions, streak: workoutStreak, prs: workoutPRs }
   }, [workoutSessions, workoutStreak, workoutPRs])
-  useEffect(() => { historiesRef.current      = chatHistories  }, [chatHistories])
+  useEffect(() => {
+    financeRef.current = { transactions, settings: financeSettings }
+  }, [transactions, financeSettings])
+  useEffect(() => {
+    learningRef.current = { areas: learningAreas }
+  }, [learningAreas])
+  useEffect(() => {
+    nsRef.current = { startTime: nsStartTime, log: nsLog, getCurrentStreak: getNSStreak }
+  }, [nsStartTime, nsLog, getNSStreak])
+  useEffect(() => { historiesRef.current      = chatHistories     }, [chatHistories])
   useEffect(() => { memoriesRef.current       = characterMemories }, [characterMemories])
-  useEffect(() => { charStatsRef.current      = charStats      }, [charStats])
+  useEffect(() => { charStatsRef.current      = charStats         }, [charStats])
   useEffect(() => { activeCharRef.current     = activeCharacterId }, [activeCharacterId])
-  useEffect(() => { isStreamingRef.current    = isStreaming    }, [isStreaming])
-  useEffect(() => { isOpenRef.current         = isOpen         }, [isOpen])
-  useEffect(() => { preferredModelRef.current = preferredModel }, [preferredModel])
+  useEffect(() => { isStreamingRef.current    = isStreaming        }, [isStreaming])
+  useEffect(() => { isOpenRef.current         = isOpen            }, [isOpen])
+  useEffect(() => { preferredModelRef.current = preferredModel    }, [preferredModel])
 
   // ── Load from Supabase on mount ──────────────────────────────────────────
   useEffect(() => {
@@ -223,7 +282,6 @@ export function AIProvider({ children }) {
           for (const row of memRes.data) {
             if (next[row.character_id] !== undefined && row.char_stats) {
               const saved = row.char_stats
-              // Merge saved stats on top of defaults (keeps new fields if added later)
               next[row.character_id] = {
                 ...next[row.character_id],
                 ...saved,
@@ -296,12 +354,9 @@ export function AIProvider({ children }) {
   const updateCharStat = useCallback((statName, delta) => {
     const charId = activeCharRef.current
     setCharStats(prev => {
-      const current = prev[charId]
+      const current  = prev[charId]
       const newValue = clampStat((current[statName] ?? 0) + delta)
-      const updated  = {
-        ...current,
-        [statName]: newValue,
-      }
+      const updated  = { ...current, [statName]: newValue }
       updated.relationship_mode = deriveRelationshipMode(updated)
       saveCharStats(charId, updated)
       return { ...prev, [charId]: updated }
@@ -329,8 +384,8 @@ export function AIProvider({ children }) {
 
   // ── Delete memory + reset relationship stats for a character ────────────
   const deleteMemory = useCallback(async (charId) => {
-    const character   = CHARACTERS[charId]
-    const resetStats  = {
+    const character  = CHARACTERS[charId]
+    const resetStats = {
       ...DEFAULT_CHAR_STATS,
       ...character?.dacs?.startStats,
       current_mood:      character?.dacs?.startMood ?? 'neutral',
@@ -348,9 +403,7 @@ export function AIProvider({ children }) {
   const resetAllStats = useCallback(async () => {
     const freshStats = buildInitialCharStats()
     setCharStats(freshStats)
-    // Clear proactive reminder cache so no stale IDs linger
     proactiveRemindedRef.current = {}
-    // Persist reset for every character that has a row in Supabase
     await Promise.all(
       CHARACTER_LIST.map(c =>
         supabase.from('ai_character_memory').upsert(
@@ -387,6 +440,22 @@ export function AIProvider({ children }) {
       return !prev
     })
   }, [])
+
+  // ── Build NoSmoke data for appState ──────────────────────────────────────
+  function buildNosmokeData() {
+    const { startTime, getCurrentStreak } = nsRef.current
+    if (!startTime || !getCurrentStreak) return null
+    const streakSeconds = getCurrentStreak()
+    if (streakSeconds <= 0) return null
+    // Find next milestone
+    const next = NS_MILESTONES.find(m => m.seconds > streakSeconds)
+    return {
+      streakSeconds,
+      startTime,
+      nextMilestoneLabel:   next?.label ?? '',
+      nextMilestoneSeconds: next?.seconds ?? 0,
+    }
+  }
 
   // ── Send a message ───────────────────────────────────────────────────────
   const sendMessage = useCallback(async (userText, imageDataUrl = null) => {
@@ -427,6 +496,10 @@ export function AIProvider({ children }) {
       const currentCharStats = charStatsRef.current[charId]
       const disciplineScore  = computeDisciplineScore(tasksRef.current, habitsRef.current)
 
+      const { transactions: finTx, settings: finSettings } = financeRef.current
+      const { areas: learnAreas } = learningRef.current
+      const nosmokeData = buildNosmokeData()
+
       const appState = buildAppState({
         tasks:          tasksRef.current,
         habits:         habitsRef.current,
@@ -436,7 +509,11 @@ export function AIProvider({ children }) {
         workoutData:    workoutDataRef.current,
         charStats:      currentCharStats,
         disciplineScore,
+        financeData:    { transactions: finTx, currency: finSettings?.currency ?? '€' },
+        learningData:   { areas: learnAreas },
+        nosmokeData,
       })
+
       const memory       = memoriesRef.current[charId] || ''
       const systemPrompt = buildSystemPrompt(character, memory, appState)
 
@@ -474,16 +551,32 @@ export function AIProvider({ children }) {
 
       // Parse + execute actions
       const { cleanText, actions: parsedActions } = parseActions(fullResponse)
+      const { areas: latestLearnAreas } = learningRef.current
       const actionResults = await executeActions(parsedActions, {
+        // Task actions
         tasks:             tasksRef.current,
+        completeTask,
+        deleteTask,
+        updateTask,
+        addTask,
+        // Habit actions
         habits:            habitsRef.current,
         completeHabitToday,
-        completeTask,
-        addTask,
+        // Appointment actions
         addAppointment,
+        // Workout actions
         addEmptyWorkout,
+        addWorkoutSession,
+        // Finance actions
+        addTransaction,
+        deleteTransaction,
+        // Learning actions
+        logLearningSession,
+        addNote: (areaId, note) => addNote(areaId, note),
+        // Navigation / memory
         navigate:          navigateFnRef.current,
         remember:          rememberFact,
+        // DACS
         updateCharStat,
         setCharMood,
       })
@@ -521,7 +614,11 @@ export function AIProvider({ children }) {
       setIsStreaming(false)
     }
   }, [
-    completeHabitToday, completeTask, addTask, addAppointment,
+    completeTask, deleteTask, updateTask, addTask,
+    completeHabitToday, addAppointment,
+    addEmptyWorkout, addWorkoutSession,
+    addTransaction, deleteTransaction,
+    logLearningSession, addNote,
     rememberFact, updateCharStat, setCharMood, saveHistory,
   ])
 
@@ -535,13 +632,12 @@ export function AIProvider({ children }) {
       const hour        = now.getHours()
       const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000
 
-      // Helper: skip IDs we already reminded about recently
       const isRecentlyReminded = (id) => {
         const ts = proactiveRemindedRef.current[id]
         return ts && new Date(ts).getTime() > sixHoursAgo
       }
 
-      const triggers   = []
+      const triggers    = []
       const triggeredIds = []
 
       // Habits not done after 8 PM
@@ -557,7 +653,7 @@ export function AIProvider({ children }) {
         }
       }
 
-      // Overdue tasks (only ones not recently reminded)
+      // Overdue tasks
       const overdue = (tasksRef.current ?? []).filter(
         t => !t.completed && t.dueDate && t.dueDate < today && !isRecentlyReminded(t.id)
       )
@@ -586,13 +682,34 @@ export function AIProvider({ children }) {
       const character = CHARACTERS[charId]
       const memory    = memoriesRef.current[charId] || ''
 
-      const sysPrompt = `You are ${character.name} from ${character.game}. ${character.personality || ''}${memory ? `\nUser memory:\n${memory}` : ''}
-Generate ONE short, friendly reminder message in character (1-2 sentences max). No action tags.`
+      // Use the full DACS system prompt for proactive messages
+      const currentCharStats = charStatsRef.current[charId]
+      const disciplineScore  = computeDisciplineScore(tasksRef.current, habitsRef.current)
+      const { transactions: finTx, settings: finSettings } = financeRef.current
+      const nosmokeData = buildNosmokeData()
+
+      const appState = buildAppState({
+        tasks:          tasksRef.current,
+        habits:         habitsRef.current,
+        appointments:   appointmentsRef.current,
+        xpData:         xpDataRef.current,
+        activePage:     activePageRef.current,
+        workoutData:    workoutDataRef.current,
+        charStats:      currentCharStats,
+        disciplineScore,
+        financeData:    { transactions: finTx, currency: finSettings?.currency ?? '€' },
+        learningData:   { areas: learningRef.current.areas },
+        nosmokeData,
+      })
+
+      const systemPrompt = buildSystemPrompt(character, memory, appState)
+
+      const sysPromptProactive = systemPrompt + `\n\nINSTRUCTION FOR THIS MESSAGE: Generate ONE short proactive reminder in character (1-2 sentences max). No action tags. Stay true to your current mood and relationship mode.`
 
       try {
         let content = ''
         for await (const chunk of streamChat([
-          { role: 'system', content: sysPrompt },
+          { role: 'system', content: sysPromptProactive },
           { role: 'user',   content: `Reminder triggers: ${triggers.join('; ')}` },
         ], { model: preferredModelRef.current })) {
           content += chunk
