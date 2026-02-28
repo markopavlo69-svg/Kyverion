@@ -2,17 +2,27 @@
 // Groq API Service — streaming chat completions
 // Requires VITE_GROQ_API_KEY in .env.local
 //
-// Models:
-//   Text only : llama-3.3-70b-versatile
-//   With image: meta-llama/llama-4-scout-17b-16e-instruct
-//
 // PRODUCTION NOTE: Before going public, move API calls to a
 // Supabase Edge Function so the key is never in the browser.
 // ============================================================
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const TEXT_MODEL   = 'llama-3.3-70b-versatile'
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
+
+export const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
+
+export const AVAILABLE_MODELS = [
+  {
+    id:    'llama-3.3-70b-versatile',
+    label: 'Llama 3.3 70B',
+    description: 'Default — fast, natural conversation',
+  },
+  {
+    id:    'deepseek-r1-distill-llama-70b',
+    label: 'DeepSeek R1 Distill 70B',
+    description: 'Reasoning model — more deliberate responses',
+  },
+]
 
 /**
  * Async generator that streams chat completion chunks from Groq.
@@ -20,9 +30,10 @@ const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
  * @param {Array}   messages   OpenAI-format message array
  * @param {Object}  options
  * @param {boolean} options.hasImage  Use vision model when true
+ * @param {string}  options.model     Override text model (ignored when hasImage)
  * @yields {string} Text delta chunks
  */
-export async function* streamChat(messages, { hasImage = false } = {}) {
+export async function* streamChat(messages, { hasImage = false, model } = {}) {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY
   if (!apiKey) {
     throw new Error(
@@ -30,7 +41,9 @@ export async function* streamChat(messages, { hasImage = false } = {}) {
     )
   }
 
-  const model = hasImage ? VISION_MODEL : TEXT_MODEL
+  const selectedModel = hasImage
+    ? VISION_MODEL
+    : (model ?? DEFAULT_MODEL)
 
   const response = await fetch(GROQ_API_URL, {
     method: 'POST',
@@ -39,11 +52,11 @@ export async function* streamChat(messages, { hasImage = false } = {}) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model,
+      model:       selectedModel,
       messages,
-      stream: true,
-      temperature: 0.85,
-      max_tokens: 1024,
+      stream:      true,
+      temperature: 0.70,
+      max_tokens:  1024,
     }),
   })
 

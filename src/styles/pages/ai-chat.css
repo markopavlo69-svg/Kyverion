@@ -504,6 +504,183 @@
 }
 .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* ── Character selector — active info block ──────────────── */
+.char-active-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.char-relationship-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Panel header — right-side actions group ─────────────── */
+.ai-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Shared icon button style (settings + close) */
+.ai-panel-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--text-base);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  flex-shrink: 0;
+}
+.ai-panel-icon-btn:hover {
+  color: var(--text-primary);
+  background: var(--border-subtle);
+}
+
+/* ── Settings dropdown ────────────────────────────────────── */
+.ai-settings-wrapper {
+  position: relative;
+}
+
+.ai-settings-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  z-index: 20;
+  overflow: hidden;
+  animation: dropdown-in 140ms ease;
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ai-settings-section {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ai-settings-section:last-child {
+  border-bottom: none;
+}
+
+.ai-settings-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 0 4px 4px;
+  margin: 0;
+}
+
+.ai-settings-danger-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  display: block;
+}
+.ai-settings-danger-btn:hover {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+
+.ai-settings-model-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.ai-settings-model-option:hover {
+  background: var(--border-subtle);
+}
+.ai-settings-model-option input[type="radio"] {
+  margin-top: 2px;
+  accent-color: var(--char-color, var(--accent-teal));
+  flex-shrink: 0;
+}
+.ai-settings-model-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ai-settings-model-option strong {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.ai-settings-model-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ── Relationship bar ─────────────────────────────────────── */
+.ai-relationship-bar-wrap {
+  flex-shrink: 0;
+  height: 18px;
+  position: relative;
+  background: color-mix(in srgb, var(--char-color, var(--accent-teal)) 8%, var(--bg-secondary));
+  border-bottom: 1px solid color-mix(in srgb, var(--char-color, var(--accent-teal)) 20%, transparent);
+  overflow: hidden;
+  cursor: default;
+}
+
+.ai-relationship-bar-fill {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  background: color-mix(in srgb, var(--char-color, var(--accent-teal)) 22%, transparent);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+}
+
+.ai-relationship-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--char-color, var(--accent-teal));
+  text-shadow: 0 1px 3px var(--bg-primary);
+  user-select: none;
+  pointer-events: none;
+}
+
 /* ── Responsive: collapse on very small screens ───────────── */
 @media (max-width: 420px) {
   .ai-chat-panel {

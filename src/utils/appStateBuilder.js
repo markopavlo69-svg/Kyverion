@@ -14,15 +14,17 @@ function offsetDateStr(dateStr, days) {
 
 /**
  * @param {Object} params
- * @param {Array}  params.tasks        - from useTasks()
- * @param {Array}  params.habits       - from useHabits()
- * @param {Array}  params.appointments - from useAppointments()
- * @param {Object} params.xpData       - from useXP()
- * @param {string} params.activePage   - current page name
- * @param {Object} params.workoutData  - { sessions, streak, prs } from useWorkout()
+ * @param {Array}  params.tasks          - from useTasks()
+ * @param {Array}  params.habits         - from useHabits()
+ * @param {Array}  params.appointments   - from useAppointments()
+ * @param {Object} params.xpData         - from useXP()
+ * @param {string} params.activePage     - current page name
+ * @param {Object} params.workoutData    - { sessions, streak, prs } from useWorkout()
+ * @param {Object} [params.charStats]    - current character relationship stats
+ * @param {number} [params.disciplineScore] - 0-100 7-day activity score
  * @returns {string}
  */
-export function buildAppState({ tasks, habits, appointments, xpData, activePage, workoutData }) {
+export function buildAppState({ tasks, habits, appointments, xpData, activePage, workoutData, charStats, disciplineScore }) {
   const today   = new Date().toISOString().slice(0, 10)
   const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   const in7Days = offsetDateStr(today, 7)
@@ -43,7 +45,7 @@ export function buildAppState({ tasks, habits, appointments, xpData, activePage,
     lines.push('')
   }
 
-  // ── Tasks due today or overdue ────────────────────────────
+  // ── Tasks due today or overdue (only incomplete) ──────────
   const dueTasks = (tasks ?? []).filter(
     t => !t.completed && t.dueDate && t.dueDate <= today
   )
@@ -108,6 +110,22 @@ export function buildAppState({ tasks, habits, appointments, xpData, activePage,
       .map(([id, cat]) => `${CATEGORIES[id]?.name || id} Lv${levelFromXP(cat.totalXP || 0)}`)
       .join(' | ')
     if (catLevels) lines.push(`  ${catLevels}`)
+    lines.push('')
+  }
+
+  // ── Character relationship state (DACS) ───────────────────
+  if (charStats) {
+    lines.push('RELATIONSHIP STATE (your stats with this user):')
+    lines.push(`  Respect:    ${charStats.respect_level ?? 0}/100`)
+    lines.push(`  Trust:      ${charStats.trust_level ?? 0}/100`)
+    lines.push(`  Attachment: ${charStats.attachment_level ?? 0}/100`)
+    lines.push(`  Attraction: ${charStats.attraction_level ?? 0}/100`)
+    lines.push(`  Mood:       ${charStats.current_mood ?? 'neutral'}`)
+    lines.push(`  Mode:       ${charStats.relationship_mode ?? 'neutral'}`)
+    if (disciplineScore !== undefined) {
+      lines.push(`  User 7-day discipline score: ${disciplineScore}/100`)
+    }
+    lines.push('')
   }
 
   return lines.join('\n')

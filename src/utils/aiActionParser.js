@@ -11,6 +11,8 @@
 //   [ACTION:add_workout:TITLE|CATEGORY]
 //   [ACTION:navigate:PAGE_NAME]
 //   [ACTION:remember:FACT_TO_REMEMBER]
+//   [ACTION:update_stat:STAT_NAME|+/-DELTA]   — e.g. trust_level|+5
+//   [ACTION:set_mood:MOOD_NAME]               — e.g. warm
 // ============================================================
 
 const ACTION_REGEX = /\[ACTION:(\w+):([^\]]*)\]/g
@@ -38,7 +40,9 @@ export function parseActions(text) {
  * Execute parsed actions against the app contexts.
  * @param {Array}  actions  - from parseActions()
  * @param {Object} ctx      - { tasks, habits, completeHabitToday, completeTask,
- *                             addTask, addAppointment, navigate, remember }
+ *                             addTask, addAppointment, addEmptyWorkout,
+ *                             navigate, remember,
+ *                             updateCharStat, setCharMood }
  * @returns {Promise<Array<{type, description, success}>>}
  */
 export async function executeActions(actions, ctx) {
@@ -126,6 +130,49 @@ export async function executeActions(actions, ctx) {
           if (ctx.remember) {
             await ctx.remember(params.trim())
             result.description = `Remembered: ${params.trim()}`
+            result.success = true
+          }
+          break
+        }
+
+        // ── DACS: update a relationship stat ───────────────────────
+        case 'update_stat': {
+          // params format: "trust_level|+8" or "respect_level|-5"
+          const [rawStat, rawDelta] = params.split('|')
+          const statName = rawStat?.trim()
+          const delta    = parseInt(rawDelta?.trim(), 10)
+          const validStats = ['respect_level', 'trust_level', 'attachment_level', 'attraction_level']
+
+          if (!statName || !validStats.includes(statName)) {
+            result.description = `Unknown stat: ${statName}`
+            break
+          }
+          if (isNaN(delta) || delta === 0) {
+            result.description = `Invalid delta for ${statName}`
+            break
+          }
+          // Cap delta at ±10 per message to prevent abuse
+          const clampedDelta = Math.max(-10, Math.min(10, delta))
+          if (ctx.updateCharStat) {
+            ctx.updateCharStat(statName, clampedDelta)
+            result.description = `${statName} ${clampedDelta > 0 ? '+' : ''}${clampedDelta}`
+            result.success = true
+          }
+          break
+        }
+
+        // ── DACS: set current mood ──────────────────────────────────
+        case 'set_mood': {
+          const mood = params.trim()
+          const validMoods = ['neutral', 'composed', 'teasing', 'warm', 'proud', 'disappointed',
+                              'protective', 'intimate', 'vulnerable', 'firm']
+          if (!validMoods.includes(mood)) {
+            result.description = `Unknown mood: ${mood}`
+            break
+          }
+          if (ctx.setCharMood) {
+            ctx.setCharMood(mood)
+            result.description = `Mood → ${mood}`
             result.success = true
           }
           break
