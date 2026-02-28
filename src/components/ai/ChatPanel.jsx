@@ -16,6 +16,7 @@ export default function ChatPanel() {
     toggleChat,
     deleteHistory,
     deleteMemory,
+    resetAllStats,
     setPreferredModel,
     activeCharacterId,
   } = useAI()
@@ -58,8 +59,15 @@ export default function ChatPanel() {
   }
 
   const handleDeleteMemory = () => {
-    if (window.confirm(`Clear ${activeCharacter?.name}'s memory about you? They will forget everything they remember.`)) {
+    if (window.confirm(`Clear ${activeCharacter?.name}'s memory and reset their relationship stats? This cannot be undone.`)) {
       deleteMemory(activeCharacterId)
+      setSettingsOpen(false)
+    }
+  }
+
+  const handleResetAllStats = () => {
+    if (window.confirm('Reset relationship stats for ALL characters to zero? Chat histories and memories are kept.')) {
+      resetAllStats()
       setSettingsOpen(false)
     }
   }
@@ -88,13 +96,22 @@ export default function ChatPanel() {
 
             {settingsOpen && (
               <div className="ai-settings-dropdown">
-                {/* Danger actions */}
+                {/* Per-character actions */}
                 <div className="ai-settings-section">
+                  <p className="ai-settings-label">{activeCharacter?.name}</p>
                   <button className="ai-settings-danger-btn" onClick={handleDeleteHistory} type="button">
                     🗑 Clear Chat History
                   </button>
                   <button className="ai-settings-danger-btn" onClick={handleDeleteMemory} type="button">
-                    🧠 Clear Character Memory
+                    🧠 Clear Memory &amp; Reset Relationship
+                  </button>
+                </div>
+
+                {/* Global reset */}
+                <div className="ai-settings-section">
+                  <p className="ai-settings-label">All Characters</p>
+                  <button className="ai-settings-danger-btn" onClick={handleResetAllStats} type="button">
+                    💔 Reset All Relationships
                   </button>
                 </div>
 

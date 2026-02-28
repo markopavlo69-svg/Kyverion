@@ -327,13 +327,43 @@ export function AIProvider({ children }) {
       .eq('character_id', charId)
   }, [user.id])
 
-  // ── Delete memory for a character ────────────────────────────────────────
+  // ── Delete memory + reset relationship stats for a character ────────────
   const deleteMemory = useCallback(async (charId) => {
+    const character   = CHARACTERS[charId]
+    const resetStats  = {
+      ...DEFAULT_CHAR_STATS,
+      ...character?.dacs?.startStats,
+      current_mood:      character?.dacs?.startMood ?? 'neutral',
+      relationship_mode: 'neutral',
+    }
     setCharacterMemories(prev => ({ ...prev, [charId]: '' }))
+    setCharStats(prev => ({ ...prev, [charId]: resetStats }))
     await supabase.from('ai_character_memory')
-      .update({ memory_text: '', updated_at: new Date().toISOString() })
+      .update({ memory_text: '', char_stats: resetStats, updated_at: new Date().toISOString() })
       .eq('user_id', user.id)
       .eq('character_id', charId)
+  }, [user.id])
+
+  // ── Reset relationship stats for ALL characters ───────────────────────────
+  const resetAllStats = useCallback(async () => {
+    const freshStats = buildInitialCharStats()
+    setCharStats(freshStats)
+    // Clear proactive reminder cache so no stale IDs linger
+    proactiveRemindedRef.current = {}
+    // Persist reset for every character that has a row in Supabase
+    await Promise.all(
+      CHARACTER_LIST.map(c =>
+        supabase.from('ai_character_memory').upsert(
+          {
+            user_id:      user.id,
+            character_id: c.id,
+            char_stats:   freshStats[c.id],
+            updated_at:   new Date().toISOString(),
+          },
+          { onConflict: 'user_id,character_id' }
+        )
+      )
+    )
   }, [user.id])
 
   // ── Switch character ─────────────────────────────────────────────────────
@@ -629,6 +659,7 @@ Generate ONE short, friendly reminder message in character (1-2 sentences max). 
       setCharMood,
       deleteHistory,
       deleteMemory,
+      resetAllStats,
     }}>
       {children}
     </AIContext.Provider>
