@@ -12,6 +12,7 @@ export default function AIChat({ activePage, onNavigate }) {
     activeCharacter,
     unreadCount,
     isOpen,
+    isFullscreen,
     toggleChat,
     registerNavigate,
     registerActivePage,
@@ -22,7 +23,7 @@ export default function AIChat({ activePage, onNavigate }) {
   useEffect(() => { registerActivePage(activePage) }, [activePage,   registerActivePage])
 
   return (
-    <div className="ai-chat-root">
+    <div className={`ai-chat-root${isFullscreen ? ' fullscreen' : ''}`}>
       {/* Chat panel (conditionally shown) */}
       {isOpen && <ChatPanel />}
 

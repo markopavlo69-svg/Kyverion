@@ -178,6 +178,7 @@ export function AIProvider({ children }) {
   const [charStats, setCharStats] = useState(buildInitialCharStats)
 
   const [isOpen,      setIsOpen]      = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -437,9 +438,13 @@ export function AIProvider({ children }) {
   const toggleChat = useCallback(() => {
     setIsOpen(prev => {
       if (!prev) setUnreadCount(0)
+      if (prev) setIsFullscreen(false) // exit fullscreen on close
       return !prev
     })
   }, [])
+
+  // ── Toggle fullscreen mode ────────────────────────────────────────────────
+  const toggleFullscreen = useCallback(() => setIsFullscreen(f => !f), [])
 
   // ── Build NoSmoke data for appState ──────────────────────────────────────
   function buildNosmokeData() {
@@ -764,11 +769,13 @@ export function AIProvider({ children }) {
       activeCharStats:   charStats[activeCharacterId],
       preferredModel,
       isOpen,
+      isFullscreen,
       isStreaming,
       unreadCount,
       sendMessage,
       switchCharacter,
       toggleChat,
+      toggleFullscreen,
       registerNavigate,
       registerActivePage,
       setPreferredModel,

@@ -11,9 +11,11 @@ export default function ChatPanel() {
     activeCharStats,
     currentHistory,
     isStreaming,
+    isFullscreen,
     preferredModel,
     sendMessage,
     toggleChat,
+    toggleFullscreen,
     deleteHistory,
     deleteMemory,
     resetAllStats,
@@ -137,6 +139,17 @@ export default function ChatPanel() {
               </div>
             )}
           </div>
+
+          {/* Fullscreen toggle */}
+          <button
+            className="ai-panel-icon-btn"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            type="button"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {isFullscreen ? '⊟' : '⛶'}
+          </button>
 
           {/* Close button */}
           <button className="ai-panel-close" onClick={toggleChat} title="Close" type="button">
