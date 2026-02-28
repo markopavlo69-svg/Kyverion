@@ -6,6 +6,7 @@ import { useLearning }    from '@context/LearningContext'
 import { useFinance }     from '@context/FinanceContext'
 import { useNoSmoke }     from '@context/NoSmokeContext'
 import { useAppointments } from '@context/AppointmentContext'
+import { useWorkout }     from '@context/WorkoutContext'
 import { getLevelTitle, progressPercent, xpToNextLevel, xpRequiredForLevel, levelFromXP } from '@utils/xpCalculator'
 import { CATEGORY_LIST }  from '@utils/categoryConfig'
 import { getTodayString, isOverdue, isTaskCompletedForDate, formatTime } from '@utils/dateUtils'
@@ -72,6 +73,7 @@ export default function DashboardPage({ onNavigate }) {
   const { transactions, settings: finSettings, getMonthData } = useFinance()
   const { log, settings: nsSettings, record, startTime, getCurrentStreak } = useNoSmoke()
   const { appointments, getAppointmentsByDate } = useAppointments()
+  const { sessions: workoutSessions, streak: workoutStreak, stats: workoutStats, prs: workoutPRs } = useWorkout()
 
   // Live no-smoke timer
   const [now, setNow] = useState(Date.now)
@@ -147,6 +149,20 @@ export default function DashboardPage({ onNavigate }) {
     const next = soon[0] ?? null
     return { todayCount: todayAppts.length, todayAppts, next }
   }, [appointments, getAppointmentsByDate, today])
+
+  // ── Workout ───────────────────────────────────────────────────────────────
+  const workoutDashStats = useMemo(() => {
+    const lastSession = workoutSessions[0] ?? null
+    const lastDate    = lastSession
+      ? new Date(lastSession.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : 'None yet'
+    return {
+      totalSessions: workoutStats.totalSessions,
+      streak:        workoutStreak,
+      totalPRs:      workoutStats.totalPRs,
+      lastDate,
+    }
+  }, [workoutSessions, workoutStreak, workoutStats])
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -319,6 +335,21 @@ export default function DashboardPage({ onNavigate }) {
               </ul>
             )
           }
+        />
+
+        {/* Workout */}
+        <ModuleCard
+          title="Workout"
+          icon="🏋️"
+          accentColor="#ef4444"
+          onNavigate={onNavigate}
+          page="workout"
+          stats={<>
+            <StatRow label="Sessions"    value={workoutDashStats.totalSessions} />
+            <StatRow label="Streak"      value={`${workoutDashStats.streak}d`}  highlight={workoutDashStats.streak >= 7 ? 'gold' : undefined} />
+            <StatRow label="PRs Set"     value={workoutDashStats.totalPRs}      highlight={workoutDashStats.totalPRs > 0 ? 'gold' : undefined} />
+            <StatRow label="Last Session" value={workoutDashStats.lastDate} />
+          </>}
         />
 
       </div>
