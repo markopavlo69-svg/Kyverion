@@ -3,7 +3,7 @@ import { supabase } from '@lib/supabase'
 import { useAuth } from './AuthContext'
 import { useXP } from './XPContext'
 import { getXPForTask } from '@utils/xpCalculator'
-import { getTodayString, doesTaskRecurOn } from '@utils/dateUtils'
+import { getTodayString, doesTaskRecurOn, getNextOccurrence } from '@utils/dateUtils'
 
 const TaskContext = createContext(null)
 
@@ -123,25 +123,44 @@ export function TaskProvider({ children }) {
     const isRecurring = task.recurrence && task.recurrence.type !== 'none'
 
     if (isRecurring) {
-      if ((task.completedDates ?? []).includes(today)) return
-      if ((task.xpAwardedDates ?? []).includes(today)) return
+      // Award XP once per completion
       const xpAmount = getXPForTask(task.priority)
       task.categories.forEach(catId => awardXP(catId, xpAmount))
-      const newCompletedDates  = [...(task.completedDates ?? []), today]
-      const newXpAwardedDates  = [...(task.xpAwardedDates ?? []), today]
-      setTasks(prev => prev.map(t =>
-        t.id === id
-          ? { ...t, completedDates: newCompletedDates, xpAwardedDates: newXpAwardedDates }
-          : t
-      ))
-      supabase.from('tasks').update({
-        completed_dates:  newCompletedDates,
-        xp_awarded_dates: newXpAwardedDates,
-      }).eq('id', id).then(({ error }) => { if (error) console.error('Task complete error:', error) })
+
+      // Delete this task instance
+      setTasks(prev => prev.filter(t => t.id !== id))
+      supabase.from('tasks').delete().eq('id', id)
+        .then(({ error }) => { if (error) console.error('Task delete error:', error) })
+
+      // Create next occurrence
+      const nextDate = getNextOccurrence(task, today)
+      if (nextDate) {
+        const nextTask = {
+          id:             `task_${Date.now()}`,
+          title:          task.title,
+          description:    task.description,
+          dueDate:        nextDate,
+          priority:       task.priority,
+          categories:     task.categories,
+          recurrence:     task.recurrence,
+          completed:      false,
+          completedAt:    null,
+          completedDates: [],
+          xpAwarded:      false,
+          xpAwardedDates: [],
+          createdAt:      new Date().toISOString(),
+        }
+        setTasks(prev => [nextTask, ...prev])
+        supabase.from('tasks').insert(taskToDb(nextTask, user.id))
+          .then(({ error }) => { if (error) console.error('Task insert error:', error) })
+      }
     } else {
-      if (task.completed || task.xpAwarded) return
+      // One-time task: block if already completed; only award XP on first completion
+      if (task.completed) return
       const xpAmount = getXPForTask(task.priority)
-      task.categories.forEach(catId => awardXP(catId, xpAmount))
+      if (!task.xpAwarded) {
+        task.categories.forEach(catId => awardXP(catId, xpAmount))
+      }
       const completedAt = new Date().toISOString()
       setTasks(prev => prev.map(t =>
         t.id === id ? { ...t, completed: true, completedAt, xpAwarded: true } : t
@@ -152,29 +171,21 @@ export function TaskProvider({ children }) {
         xp_awarded:   true,
       }).eq('id', id).then(({ error }) => { if (error) console.error('Task complete error:', error) })
     }
-  }, [tasks, awardXP])
+  }, [tasks, awardXP, user.id])
 
-  const uncompleteTask = useCallback((id, dateStr) => {
-    const today = dateStr || getTodayString()
-    const task  = tasks.find(t => t.id === id)
+  const uncompleteTask = useCallback((id) => {
+    const task = tasks.find(t => t.id === id)
     if (!task) return
 
     const isRecurring = task.recurrence && task.recurrence.type !== 'none'
+    if (isRecurring) return // recurring tasks are deleted on completion — nothing to undo
 
-    if (isRecurring) {
-      const newDates = (task.completedDates ?? []).filter(d => d !== today)
-      setTasks(prev => prev.map(t =>
-        t.id === id ? { ...t, completedDates: newDates } : t
-      ))
-      supabase.from('tasks').update({ completed_dates: newDates }).eq('id', id)
-        .then(({ error }) => { if (error) console.error('Task uncomplete error:', error) })
-    } else {
-      setTasks(prev => prev.map(t =>
-        t.id === id ? { ...t, completed: false, completedAt: null } : t
-      ))
-      supabase.from('tasks').update({ completed: false, completed_at: null }).eq('id', id)
-        .then(({ error }) => { if (error) console.error('Task uncomplete error:', error) })
-    }
+    // One-time task: allow unchecking so user can re-check; xpAwarded stays true to prevent re-award
+    setTasks(prev => prev.map(t =>
+      t.id === id ? { ...t, completed: false, completedAt: null } : t
+    ))
+    supabase.from('tasks').update({ completed: false, completed_at: null }).eq('id', id)
+      .then(({ error }) => { if (error) console.error('Task uncomplete error:', error) })
   }, [tasks])
 
   const getTasksByDate = useCallback((dateStr) => {

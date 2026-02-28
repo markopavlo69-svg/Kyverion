@@ -117,6 +117,41 @@ export function getLastNWeeks(dateStr, n) {
   return results
 }
 
+// Returns the next due date string after completing a recurring task on completedDateStr
+export function getNextOccurrence(task, completedDateStr) {
+  const from = completedDateStr || getTodayString()
+  const { recurrence } = task
+  if (!recurrence || recurrence.type === 'none') return null
+
+  switch (recurrence.type) {
+    case 'daily':    return offsetDate(from, 1)
+    case 'weekly':   return offsetDate(from, 7)
+    case 'biweekly': return offsetDate(from, 14)
+    case 'monthly': {
+      const d = new Date(from + 'T00:00:00')
+      d.setMonth(d.getMonth() + 1)
+      return toDateString(d)
+    }
+    case 'yearly': {
+      const d = new Date(from + 'T00:00:00')
+      d.setFullYear(d.getFullYear() + 1)
+      return toDateString(d)
+    }
+    case 'custom': {
+      const days = recurrence.daysOfWeek ?? []
+      if (days.length === 0) return null
+      const next = new Date(from + 'T00:00:00')
+      next.setDate(next.getDate() + 1)
+      for (let i = 0; i < 8; i++) {
+        if (days.includes(next.getDay())) return toDateString(next)
+        next.setDate(next.getDate() + 1)
+      }
+      return null
+    }
+    default: return null
+  }
+}
+
 // Returns true if a task is marked complete for the given date
 export function isTaskCompletedForDate(task, dateStr) {
   if (!task.recurrence || task.recurrence.type === 'none') return !!task.completed
