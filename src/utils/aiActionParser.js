@@ -107,7 +107,7 @@ export async function executeActions(actions, ctx) {
           const task    = (ctx.tasks ?? []).find(t => t.id === taskId)
           const validFields = ['title', 'priority', 'dueDate', 'description', 'categories']
           if (!task) { result.description = `Task not found: ${taskId}`; break }
-          if (!validFields.includes(field)) { result.description = `Invalid field: ${field}`; break }
+          if (!validFields.includes(field)) { result.description = `Invalid field: "${field}". Valid fields: ${validFields.join(', ')}`; break }
           if (!ctx.updateTask) { result.description = 'updateTask not available'; break }
           const updates = field === 'categories'
             ? { categories: value.split(',').map(s => s.trim()).filter(Boolean) }

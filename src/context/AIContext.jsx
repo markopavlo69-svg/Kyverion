@@ -88,7 +88,7 @@ MEMORY:
 TASKS:
   [ACTION:complete_task:TASK_ID]        — mark task done (STRICT: only if user said "I did/finished/completed X" in THIS exact message)
   [ACTION:delete_task:TASK_ID]          — delete a task permanently
-  [ACTION:update_task:TASK_ID|FIELD|VALUE] — update task field (title / priority / dueDate / description / categories)
+  [ACTION:update_task:TASK_ID|FIELD|VALUE] — update task field; FIELD must be exactly one of: title / priority / dueDate / description / categories (do NOT use: progress, status, completed, or any other field)
   [ACTION:add_task:TITLE|PRIORITY|CAT] — add a task (priority: low/medium/high; category: strength/intelligence/creativity/discipline/social/vitality)
 
 HABITS:
