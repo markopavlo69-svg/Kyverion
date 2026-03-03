@@ -564,14 +564,15 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 260px;
+  width: 260px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-dim);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
   z-index: 200;
-  overflow-y: auto;
+  overflow: hidden;
   max-height: min(480px, 70vh);
+  overflow-y: auto;
   animation: dropdown-in 140ms ease;
 }
 
@@ -617,13 +618,16 @@
 }
 
 .ai-settings-model-option {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 16px 1fr;
   gap: 8px;
+  align-items: start;
   padding: 7px 10px;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background var(--transition-fast);
+  width: 100%;
+  box-sizing: border-box;
 }
 .ai-settings-model-option:hover {
   background: var(--border-subtle);
@@ -631,22 +635,30 @@
 .ai-settings-model-option input[type="radio"] {
   margin-top: 2px;
   accent-color: var(--char-color, var(--accent-teal));
-  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 .ai-settings-model-option span {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 .ai-settings-model-option strong {
   font-size: var(--text-sm);
   color: var(--text-primary);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ai-settings-model-desc {
   font-size: 11px;
   color: var(--text-muted);
   font-weight: 400;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 /* ── Relationship bar ─────────────────────────────────────── */
