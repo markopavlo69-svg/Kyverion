@@ -47,11 +47,12 @@ export function parseActions(text) {
 
 /**
  * Execute parsed actions against the app contexts.
- * @param {Array}  actions  - from parseActions()
- * @param {Object} ctx      - all app functions + handlers
+ * @param {Array}  actions      - from parseActions()
+ * @param {Object} ctx          - all app functions + handlers
+ * @param {string} userMessage  - the raw user message (used for intent validation)
  * @returns {Promise<Array<{type, description, success}>>}
  */
-export async function executeActions(actions, ctx) {
+export async function executeActions(actions, ctx, userMessage = '') {
   const results = []
 
   for (const { type, params } of actions) {
@@ -62,6 +63,12 @@ export async function executeActions(actions, ctx) {
 
         // ── Habits ─────────────────────────────────────────────────
         case 'complete_habit': {
+          // Guard: only execute if the user explicitly stated they completed something
+          const COMPLETION_INTENT = /\b(did|finished|completed|done|marked|checked|accomplished|wrapped)\b/i
+          if (!COMPLETION_INTENT.test(userMessage)) {
+            result.description = 'Skipped: user did not explicitly confirm habit completion'
+            break
+          }
           const habit = (ctx.habits ?? []).find(h => h.id === params)
           if (habit) {
             ctx.completeHabitToday(params)
@@ -75,6 +82,12 @@ export async function executeActions(actions, ctx) {
 
         // ── Tasks ──────────────────────────────────────────────────
         case 'complete_task': {
+          // Guard: only execute if the user explicitly stated they completed something
+          const COMPLETION_INTENT = /\b(did|finished|completed|done|marked|checked|accomplished|wrapped)\b/i
+          if (!COMPLETION_INTENT.test(userMessage)) {
+            result.description = 'Skipped: user did not explicitly confirm task completion'
+            break
+          }
           const task = (ctx.tasks ?? []).find(t => t.id === params)
           if (task) {
             ctx.completeTask(params)
@@ -119,6 +132,12 @@ export async function executeActions(actions, ctx) {
         }
 
         case 'add_task': {
+          // Guard: only create a task if the user explicitly asked for one
+          const ADD_INTENT = /\b(add|create|make|new task|put|set up|todo|to-do|remind me|schedule)\b/i
+          if (!ADD_INTENT.test(userMessage)) {
+            result.description = 'Skipped: user did not explicitly ask to add a task'
+            break
+          }
           const parts    = params.split('|')
           const title    = parts[0]?.trim()
           const priority = parts[1]?.trim() || 'medium'
@@ -161,6 +180,12 @@ export async function executeActions(actions, ctx) {
         }
 
         case 'add_workout_session': {
+          // Guard: only log a workout if the user explicitly asked to log/record/track one
+          const LOG_INTENT = /\b(log|logged|record|track|add|want to (log|track|record))\b/i
+          if (!LOG_INTENT.test(userMessage)) {
+            result.description = 'Skipped: user did not explicitly ask to log a workout'
+            break
+          }
           // Full workout session with exercises
           // params: "TITLE|CATEGORY|DATE|name/sets/reps/weight/unit;name2/..."
           const parts    = params.split('|')

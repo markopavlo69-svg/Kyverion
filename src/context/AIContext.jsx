@@ -133,7 +133,7 @@ STRICT RULES — NEVER VIOLATE:
   2. If you THINK a task might be done but are not 100% certain, ASK: "Shall I mark '[task name]' as completed?" — then wait for confirmation.
   3. NEVER complete tasks based on overdue status, assumptions, or inference alone.
   4. NEVER invent task/habit/area IDs — only use IDs that appear in the app state above.
-  5. NEVER add tasks, appointments, or finance entries unless the user explicitly asks you to create one.
+  5. NEVER add tasks, appointments, finance entries, or workout sessions unless the user explicitly uses creation/logging language ("add", "create", "log", "record", "schedule", "track"). If the user describes an activity without requesting to log it, respond in character only — DO NOT create any entry.
   6. NEVER navigate unless the user asks you to go somewhere.
   7. Only adjust stats when something genuinely meaningful happens — not every message.
   8. Keep responses brief and natural — this is a chat, not an essay.
@@ -584,7 +584,7 @@ export function AIProvider({ children }) {
         // DACS
         updateCharStat,
         setCharMood,
-      })
+      }, userText ?? '')
 
       const finalAiMsg = {
         id:          aiMsgId,
