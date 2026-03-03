@@ -69,6 +69,11 @@ export async function* streamChat(messages, { hasImage = false, model } = {}) {
   const decoder = new TextDecoder()
   let buffer = ''
 
+  // Strip <think>…</think> reasoning tokens emitted by models like Qwen3 / DeepSeek R1.
+  // Buffer content until </think> is found, then yield everything after it.
+  let thinkBuffer = ''
+  let pastThink   = false
+
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
@@ -87,7 +92,28 @@ export async function* streamChat(messages, { hasImage = false, model } = {}) {
       try {
         const json    = JSON.parse(data)
         const content = json.choices?.[0]?.delta?.content
-        if (content) yield content
+        if (!content) continue
+
+        if (pastThink) {
+          yield content
+        } else {
+          thinkBuffer += content
+          // Check if this chunk opens a think block at all
+          if (!thinkBuffer.startsWith('<think>') && thinkBuffer.length > 7) {
+            // No think block — yield everything accumulated and stop filtering
+            pastThink = true
+            yield thinkBuffer
+            thinkBuffer = ''
+          } else {
+            const endIdx = thinkBuffer.indexOf('</think>')
+            if (endIdx !== -1) {
+              pastThink = true
+              const afterThink = thinkBuffer.slice(endIdx + 8).trimStart()
+              if (afterThink) yield afterThink
+              thinkBuffer = ''
+            }
+          }
+        }
       } catch {
         // Skip malformed SSE chunk
       }
