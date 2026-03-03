@@ -539,6 +539,10 @@ export function AIProvider({ children }) {
         { role: 'user', content: currentUserContent },
       ]
 
+      // Strip <think>…</think> reasoning tokens (Qwen3, DeepSeek R1, etc.)
+      const stripThink = (text) =>
+        text.replace(/<think>[\s\S]*?<\/think>/g, '').trimStart()
+
       // Stream response
       let fullResponse = ''
       for await (const chunk of streamChat(groqMessages, {
@@ -549,13 +553,13 @@ export function AIProvider({ children }) {
         setChatHistories(prev => ({
           ...prev,
           [charId]: prev[charId].map(m =>
-            m.id === aiMsgId ? { ...m, content: fullResponse } : m
+            m.id === aiMsgId ? { ...m, content: stripThink(fullResponse) } : m
           ),
         }))
       }
 
-      // Parse + execute actions
-      const { cleanText, actions: parsedActions } = parseActions(fullResponse)
+      // Parse + execute actions (on think-stripped text)
+      const { cleanText, actions: parsedActions } = parseActions(stripThink(fullResponse))
       const { areas: latestLearnAreas } = learningRef.current
       const actionResults = await executeActions(parsedActions, {
         // Task actions
