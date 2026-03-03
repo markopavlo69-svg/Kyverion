@@ -53,7 +53,7 @@ export function LearningProvider({ children }) {
       setAreas((areasRes.data ?? []).map(a => ({
         id: a.id, name: a.name, icon: a.icon ?? '📚', color: a.color ?? '#00d4ff',
         category: a.category ?? 'intelligence', totalSeconds: a.total_seconds ?? 0,
-        createdAt: a.created_at,
+        createdAt: a.created_at, docUrl: a.doc_url ?? null,
         notes:    notesByArea[a.id]    ?? [],
         links:    linksByArea[a.id]    ?? [],
         sessions: sessionsByArea[a.id] ?? [],
@@ -270,11 +270,18 @@ export function LearningProvider({ children }) {
     return { todaySeconds, totalSeconds, totalXP }
   }, [areas])
 
+  const setAreaDocUrl = useCallback((areaId, url) => {
+    setAreas(prev => prev.map(a => a.id === areaId ? { ...a, docUrl: url ?? null } : a))
+    supabase.from('learning_areas').update({ doc_url: url ?? null }).eq('id', areaId)
+      .then(({ error }) => { if (error) console.error('Area doc_url update error:', error) })
+  }, [])
+
   const value = {
     areas, activeSession, startSession, stopSession, logSession,
     addArea, updateArea, deleteArea,
     addNote, updateNote, deleteNote,
     addLink, deleteLink,
+    setAreaDocUrl,
     getAreaStats, getTotalStats,
   }
 

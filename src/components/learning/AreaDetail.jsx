@@ -6,6 +6,7 @@ import NoteCard from './NoteCard'
 import NoteEditor from './NoteEditor'
 import LinkItem from './LinkItem'
 import AreaForm from './AreaForm'
+import DocViewer from './DocViewer'
 
 function formatDuration(seconds) {
   const h = Math.floor(seconds / 3600)
@@ -17,7 +18,7 @@ function formatDuration(seconds) {
 
 export default function AreaDetail({ area, onBack }) {
   const { updateArea, deleteArea, addNote, updateNote, deleteNote, addLink, deleteLink, getAreaStats } = useLearning()
-  const [tab,           setTab]           = useState('notes') // 'notes' | 'links'
+  const [tab,           setTab]           = useState('doc') // 'doc' | 'notes' | 'links'
   const [editingArea,   setEditingArea]   = useState(false)
   const [selectedNote,  setSelectedNote]  = useState(null) // note object when editing
   const [addLinkOpen,   setAddLinkOpen]   = useState(false)
@@ -134,6 +135,12 @@ export default function AreaDetail({ area, onBack }) {
       {/* Tabs */}
       <div className="detail-tabs">
         <button
+          className={`detail-tab${tab === 'doc' ? ' detail-tab--active' : ''}`}
+          onClick={() => setTab('doc')}
+        >
+          📄 Doc
+        </button>
+        <button
           className={`detail-tab${tab === 'notes' ? ' detail-tab--active' : ''}`}
           onClick={() => setTab('notes')}
         >
@@ -146,6 +153,9 @@ export default function AreaDetail({ area, onBack }) {
           🔗 Links ({area.links?.length ?? 0})
         </button>
       </div>
+
+      {/* Doc tab */}
+      {tab === 'doc' && <DocViewer area={area} />}
 
       {/* Notes tab */}
       {tab === 'notes' && (
