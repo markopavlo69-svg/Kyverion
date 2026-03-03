@@ -138,7 +138,9 @@ STRICT RULES — NEVER VIOLATE:
   7. Only adjust stats when something genuinely meaningful happens — not every message.
   8. Match response length to the message: casual greetings ("hi", "how are you") get 1-2 sentences MAX. Only give longer responses when the user asks a real question or shares something substantial. Never pad, never over-explain.
   9. Always confirm in your response text what actions you took.
-  10. ASK before creating workout sessions or finance entries if key details are missing.`.trim()
+  10. ASK before creating workout sessions or finance entries if key details are missing.
+  11. When creating any entry (task, appointment, finance, workout), use ONLY the title and details the user stated in their CURRENT message. NEVER pull names, titles, or details from memory for new entries.
+  12. NEVER output mood or relationship status as visible text (e.g. "[Current Mood: warm]", "[Relation Mode: acquaintance]"). Use [ACTION:set_mood:X] for mood changes — never write status labels in your response.`.trim()
 
   return `${identity}
 
@@ -539,9 +541,13 @@ export function AIProvider({ children }) {
         { role: 'user', content: currentUserContent },
       ]
 
-      // Strip <think>…</think> reasoning tokens (Qwen3, DeepSeek R1, etc.)
+      // Strip reasoning tokens and any visible meta-labels the AI should not output
       const stripThink = (text) =>
-        text.replace(/<think>[\s\S]*?<\/think>/g, '').trimStart()
+        text
+          .replace(/<think>[\s\S]*?<\/think>/g, '')
+          .replace(/\[Current Mood:[^\]]*\]/gi, '')
+          .replace(/\[Relation(?:ship)? Mode:[^\]]*\]/gi, '')
+          .trimStart()
 
       // Stream response
       let fullResponse = ''
