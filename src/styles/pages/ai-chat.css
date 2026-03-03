@@ -129,6 +129,8 @@
   border-bottom: 1px solid color-mix(in srgb, var(--char-color, var(--accent-teal)) 25%, transparent);
   background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
   flex-shrink: 0;
+  position: relative;
+  z-index: 50;
 }
 
 .ai-panel-close {
@@ -562,13 +564,14 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 220px;
+  min-width: 260px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-dim);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
-  z-index: 20;
-  overflow: hidden;
+  z-index: 200;
+  overflow-y: auto;
+  max-height: min(480px, 70vh);
   animation: dropdown-in 140ms ease;
 }
 

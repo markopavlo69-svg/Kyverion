@@ -1,48 +1,26 @@
 import { useState } from 'react'
 import { useLearning } from '@context/LearningContext'
-import { createGoogleDoc, getEmbedUrl } from '@services/googleDocsService'
+import { getEmbedUrl } from '@services/googleDocsService'
 
 export default function DocViewer({ area }) {
   const { setAreaDocUrl } = useLearning()
-  const [loading,   setLoading]   = useState(false)
-  const [showPaste, setShowPaste] = useState(false)
-  const [urlInput,  setUrlInput]  = useState('')
-  const [error,     setError]     = useState(null)
+  const [urlInput, setUrlInput] = useState('')
+  const [error,    setError]    = useState(null)
 
   const docUrl  = area.docUrl ?? null
   const embedUrl = getEmbedUrl(docUrl)
 
-  // ── Create a new doc via Drive API ──────────────────────────────────────
-  async function handleCreate() {
-    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-      setError('VITE_GOOGLE_CLIENT_ID is not set. Add it to your .env.local file.')
-      return
-    }
-    setLoading(true)
-    setError(null)
-    try {
-      const url = await createGoogleDoc(`${area.name} — Notes`)
-      setAreaDocUrl(area.id, url)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── Link an existing doc URL ─────────────────────────────────────────────
-  function handlePaste(e) {
+  function handleLink(e) {
     e.preventDefault()
     const url = urlInput.trim()
     if (!url) return
     if (!getEmbedUrl(url)) {
-      setError('Not a valid Google Docs URL. It should contain /document/d/...')
+      setError('Not a valid Google Docs URL. It should contain /document/d/…')
       return
     }
     setError(null)
     setAreaDocUrl(area.id, url)
     setUrlInput('')
-    setShowPaste(false)
   }
 
   function handleUnlink() {
@@ -87,52 +65,25 @@ export default function DocViewer({ area }) {
         <div className="doc-viewer__icon">📄</div>
         <h3 className="doc-viewer__title">Link a Google Doc</h3>
         <p className="doc-viewer__desc">
-          Create a new doc or attach an existing one. Docs are opened directly inside the app.
+          Create a doc in Google Docs, then paste the link here to embed it.
         </p>
 
-        <div className="doc-viewer__actions">
-          <button
-            className="btn btn--primary"
-            onClick={handleCreate}
-            disabled={loading}
-          >
-            {loading ? 'Creating…' : '+ Create Google Doc'}
-          </button>
-          <button
-            className="btn btn--ghost"
-            onClick={() => { setShowPaste(v => !v); setError(null) }}
-          >
-            Paste existing URL
-          </button>
-        </div>
-
-        {showPaste && (
-          <form className="doc-viewer__paste" onSubmit={handlePaste}>
-            <input
-              className="form-input"
-              placeholder="https://docs.google.com/document/d/..."
-              value={urlInput}
-              onChange={e => setUrlInput(e.target.value)}
-              type="url"
-              autoFocus
-            />
-            <div className="doc-viewer__paste-btns">
-              <button type="submit" className="btn btn--primary btn--sm">Link</button>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => { setShowPaste(false); setError(null) }}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+        <form className="doc-viewer__paste" onSubmit={handleLink}>
+          <input
+            className="form-input"
+            placeholder="https://docs.google.com/document/d/..."
+            value={urlInput}
+            onChange={e => { setUrlInput(e.target.value); setError(null) }}
+            type="url"
+            autoFocus
+          />
+          <button type="submit" className="btn btn--primary btn--sm">Link Doc</button>
+        </form>
 
         {error && <p className="doc-viewer__error">{error}</p>}
 
         <p className="doc-viewer__hint">
-          Requires a Google account. Created docs are automatically shared — anyone with the link can edit.
+          Make sure sharing is set to "Anyone with the link can edit" in Google Docs.
         </p>
       </div>
     </div>
