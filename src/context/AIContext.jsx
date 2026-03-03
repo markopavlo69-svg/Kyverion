@@ -96,6 +96,7 @@ HABITS:
 
 APPOINTMENTS:
   [ACTION:add_appointment:TITLE|DATE|TIME|DESC] — add appointment (DATE: YYYY-MM-DD, TIME: HH:MM or blank)
+  [ACTION:update_appointment:APPT_ID|FIELD|VALUE] — update appointment field; FIELD must be exactly one of: title / date / time / endTime / location / description (DATE value must be YYYY-MM-DD)
 
 WORKOUTS (PREFERRED — logs full detail):
   [ACTION:add_workout_session:TITLE|CATEGORY|DATE|EXERCISES]
@@ -140,7 +141,10 @@ STRICT RULES — NEVER VIOLATE:
   9. Always confirm in your response text what actions you took.
   10. ASK before creating workout sessions or finance entries if key details are missing.
   11. When creating any entry (task, appointment, finance, workout), use ONLY the title and details the user stated in their CURRENT message. NEVER pull names, titles, or details from memory for new entries.
-  12. NEVER output mood or relationship status as visible text (e.g. "[Current Mood: warm]", "[Relation Mode: acquaintance]"). Use [ACTION:set_mood:X] for mood changes — never write status labels in your response.`.trim()
+  12. NEVER output mood or relationship status as visible text (e.g. "[Current Mood: warm]", "[Relation Mode: acquaintance]"). Use [ACTION:set_mood:X] for mood changes — never write status labels in your response.
+  13. Your verbal response and your ACTION tags MUST be consistent. If you say "no changes needed" or "it's already set correctly", emit ZERO action tags. If you emit an action tag, truthfully describe what you did. Never say you made a change you did not make, and never say no change was made when you did emit an action.
+  14. DATE VALUES must always be complete YYYY-MM-DD (e.g. 2026-03-05, not 2026-03-0 or 2026-3-5). Double-check every date before embedding it in an action tag.
+  15. "UPCOMING TASKS (7 days)" in the app state are FUTURE tasks — do NOT treat them as overdue or urgent unless their due date is today or earlier. Do not suggest the user prioritize tasks that are scheduled days away.`.trim()
 
   return `${identity}
 
@@ -159,7 +163,7 @@ export function AIProvider({ children }) {
   const { user }                                        = useAuth()
   const { tasks, addTask, completeTask, deleteTask, updateTask } = useTasks()
   const { habits, completeHabitToday }                  = useHabits()
-  const { appointments, addAppointment }                = useAppointments()
+  const { appointments, addAppointment, updateAppointment } = useAppointments()
   const { xpData }                                      = useXP()
   const {
     sessions: workoutSessions, streak: workoutStreak,
@@ -578,7 +582,9 @@ export function AIProvider({ children }) {
         habits:            habitsRef.current,
         completeHabitToday,
         // Appointment actions
+        appointments:      appointmentsRef.current,
         addAppointment,
+        updateAppointment,
         // Workout actions
         addEmptyWorkout,
         addWorkoutSession,
@@ -630,7 +636,7 @@ export function AIProvider({ children }) {
     }
   }, [
     completeTask, deleteTask, updateTask, addTask,
-    completeHabitToday, addAppointment,
+    completeHabitToday, addAppointment, updateAppointment,
     addEmptyWorkout, addWorkoutSession,
     addTransaction, deleteTransaction,
     logLearningSession, addNote,

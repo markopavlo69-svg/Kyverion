@@ -10,6 +10,7 @@
 //   [ACTION:update_task:TASK_ID|FIELD|VALUE]         — field: title/priority/dueDate/description
 //   [ACTION:add_task:TITLE|PRIORITY|CATEGORY]
 //   [ACTION:add_appointment:TITLE|DATE|TIME|DESCRIPTION]
+//   [ACTION:update_appointment:APPT_ID|FIELD|VALUE]  — field: title/date/time/endTime/location/description
 //   [ACTION:add_workout_session:TITLE|CATEGORY|DATE|EXERCISES]
 //     EXERCISES format: "name/sets/reps/weight/unit;name2/sets2/reps2/weight2/unit2"
 //     e.g. "Push-up/3/15/0/bodyweight;Squat/4/12/0/bodyweight"
@@ -23,6 +24,13 @@
 //   [ACTION:update_stat:STAT_NAME|+/-DELTA]          — e.g. trust_level|+5
 //   [ACTION:set_mood:MOOD_NAME]                      — e.g. warm
 // ============================================================
+
+/** Validate that a string is a real YYYY-MM-DD date */
+function isValidDate(str) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false
+  const d = new Date(str + 'T00:00:00')
+  return !isNaN(d.getTime())
+}
 
 const ACTION_REGEX = /\[ACTION:(\w+):([^\]]*)\]/g
 
@@ -122,11 +130,15 @@ export async function executeActions(actions, ctx, userMessage = '') {
           if (!task) { result.description = `Task not found: ${taskId}`; break }
           if (!validFields.includes(field)) { result.description = `Invalid field: "${field}". Valid fields: ${validFields.join(', ')}`; break }
           if (!ctx.updateTask) { result.description = 'updateTask not available'; break }
+          if (field === 'dueDate' && !isValidDate(value)) {
+            result.description = `Invalid dueDate: "${value}" (expected YYYY-MM-DD)`
+            break
+          }
           const updates = field === 'categories'
             ? { categories: value.split(',').map(s => s.trim()).filter(Boolean) }
             : { [field]: value }
           ctx.updateTask(taskId, updates)
-          result.description = `Task "${task.title}" updated: ${field} = ${value}`
+          result.description = `Task "${task.title}" updated: ${field} → ${value}`
           result.success = true
           break
         }
@@ -160,6 +172,27 @@ export async function executeActions(actions, ctx, userMessage = '') {
           if (!title || !date) { result.description = 'Missing title or date'; break }
           ctx.addAppointment({ title, date, time, description })
           result.description = `Appointment "${title}" added for ${date}${time ? ' at ' + time : ''}`
+          result.success = true
+          break
+        }
+
+        case 'update_appointment': {
+          // params: "APPT_ID|FIELD|VALUE"
+          const parts  = params.split('|')
+          const apptId = parts[0]?.trim()
+          const field  = parts[1]?.trim()
+          const value  = parts.slice(2).join('|').trim()
+          const appt   = (ctx.appointments ?? []).find(a => a.id === apptId)
+          const validFields = ['title', 'date', 'time', 'endTime', 'location', 'description']
+          if (!appt) { result.description = `Appointment not found: ${apptId}`; break }
+          if (!validFields.includes(field)) { result.description = `Invalid field: "${field}". Valid fields: ${validFields.join(', ')}`; break }
+          if (!ctx.updateAppointment) { result.description = 'updateAppointment not available'; break }
+          if (field === 'date' && !isValidDate(value)) {
+            result.description = `Invalid date: "${value}" (expected YYYY-MM-DD)`
+            break
+          }
+          ctx.updateAppointment(apptId, { [field]: value })
+          result.description = `Appointment "${appt.title}" updated: ${field} → ${value}`
           result.success = true
           break
         }
