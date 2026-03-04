@@ -40,10 +40,15 @@ export default function TodayPage({ onNavigate }) {
     if (!t.dueDate || t.recurrence?.type !== 'none' && t.recurrence) return false
     return isOverdue(t.dueDate) && !isTaskCompletedForDate(t, today)
   })
-  // Merge and deduplicate overdue + today's pending
-  const allPendingIds = new Set(pendingTasks.map(t => t.id))
-  const uniqueOverdue = overdueTasks.filter(t => !allPendingIds.has(t.id))
-  const focusTasks = [...pendingTasks, ...uniqueOverdue]
+  // Merge and deduplicate overdue + today's pending + in-progress (no due date)
+  const allPendingIds  = new Set(pendingTasks.map(t => t.id))
+  const uniqueOverdue  = overdueTasks.filter(t => !allPendingIds.has(t.id))
+  const overdueIds     = new Set(uniqueOverdue.map(t => t.id))
+  const inProgressNoDate = tasks.filter(t =>
+    t.status === 'in-progress' && !t.completed && !t.dueDate &&
+    !allPendingIds.has(t.id) && !overdueIds.has(t.id)
+  )
+  const focusTasks = [...pendingTasks, ...uniqueOverdue, ...inProgressNoDate]
 
   // ── Habits ───────────────────────────────────────────────────
   const pendingHabits = habits.filter(h => !h.completions.some(c => c.date === today))
@@ -116,6 +121,7 @@ export default function TodayPage({ onNavigate }) {
         >
           {focusTasks.map(t => {
             const overdue = isOverdue(t.dueDate) && !getTasksByDate(today).find(x => x.id === t.id)
+            const isInProgress = t.status === 'in-progress'
             return (
               <div key={t.id} className="today-task-row">
                 <button
@@ -127,6 +133,9 @@ export default function TodayPage({ onNavigate }) {
                   <span className="today-task-row__title">{t.title}</span>
                   <div className="today-task-row__meta">
                     <PriorityBadge priority={t.priority} />
+                    {isInProgress && !t.dueDate && (
+                      <span className="today-task-row__stage">In Progress</span>
+                    )}
                     {t.dueDate && (
                       <span className={`today-task-row__due${overdue ? ' today-task-row__due--overdue' : ''}`}>
                         {overdue ? 'Overdue · ' : ''}{formatDateShort(t.dueDate)}

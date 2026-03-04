@@ -201,6 +201,11 @@
 .today-task-row__due--overdue {
   color: var(--accent-danger);
 }
+.today-task-row__stage {
+  font-size: var(--text-xs);
+  color: var(--accent-pink, #e879a8);
+  font-weight: 500;
+}
 
 /* ── Appointment row ────────────────────────────────────────── */
 .today-appt-row {

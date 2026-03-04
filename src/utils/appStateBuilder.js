@@ -108,10 +108,11 @@ export function buildAppState({
   if (dueTasks.length > 0) {
     lines.push('TASKS DUE / OVERDUE:')
     for (const t of dueTasks) {
-      const cats   = t.categories?.join(',') || 'none'
-      const status = t.dueDate < today ? 'OVERDUE' : 'DUE TODAY'
-      const desc   = t.description ? ` — "${trunc(t.description)}"` : ''
-      lines.push(`  [${status}] "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} id:${t.id}`)
+      const cats      = t.categories?.join(',') || 'none'
+      const dueStatus = t.dueDate < today ? 'OVERDUE' : 'DUE TODAY'
+      const stage     = t.status ?? 'todo'
+      const desc      = t.description ? ` — "${trunc(t.description)}"` : ''
+      lines.push(`  [${dueStatus}|${stage}] "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} id:${t.id}`)
     }
     lines.push('')
   }
@@ -123,9 +124,10 @@ export function buildAppState({
   if (upcomingTasks.length > 0) {
     lines.push('UPCOMING TASKS (7 days):')
     for (const t of upcomingTasks) {
-      const cats = t.categories?.join(',') || 'none'
-      const desc = t.description ? ` — "${trunc(t.description)}"` : ''
-      lines.push(`  "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} id:${t.id}`)
+      const cats  = t.categories?.join(',') || 'none'
+      const stage = t.status ?? 'todo'
+      const desc  = t.description ? ` — "${trunc(t.description)}"` : ''
+      lines.push(`  [${stage}] "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} id:${t.id}`)
     }
     lines.push('')
   }
@@ -135,9 +137,10 @@ export function buildAppState({
   if (undatedTasks.length > 0) {
     lines.push('TASKS (no due date):')
     for (const t of undatedTasks) {
-      const cats = t.categories?.join(',') || 'none'
-      const desc = t.description ? ` — "${trunc(t.description)}"` : ''
-      lines.push(`  "${t.title}" [${t.priority}|${cats}]${desc} id:${t.id}`)
+      const cats  = t.categories?.join(',') || 'none'
+      const stage = t.status ?? 'todo'
+      const desc  = t.description ? ` — "${trunc(t.description)}"` : ''
+      lines.push(`  [${stage}] "${t.title}" [${t.priority}|${cats}]${desc} id:${t.id}`)
     }
     lines.push('')
   }

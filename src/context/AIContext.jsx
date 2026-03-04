@@ -88,7 +88,8 @@ MEMORY:
 TASKS:
   [ACTION:complete_task:TASK_ID]        — mark task done (STRICT: only if user said "I did/finished/completed X" in THIS exact message)
   [ACTION:delete_task:TASK_ID]          — delete a task permanently
-  [ACTION:update_task:TASK_ID|FIELD|VALUE] — update task field; FIELD must be exactly one of: title / priority / dueDate / description / categories (do NOT use: progress, status, completed, or any other field)
+  [ACTION:update_task:TASK_ID|FIELD|VALUE] — update task field; FIELD must be exactly one of: title / priority / dueDate / description / categories — NEVER use status, completed, progress, or any other field
+  ⚠ TO MARK A TASK DONE: use complete_task, NEVER update_task — update_task cannot change task completion state
   [ACTION:add_task:TITLE|PRIORITY|CAT] — add a task (priority: low/medium/high; category: strength/intelligence/creativity/discipline/social/vitality)
 
 HABITS:
@@ -141,7 +142,8 @@ STRICT RULES — NEVER VIOLATE:
   12. NEVER output mood or relationship status as visible text (e.g. "[Current Mood: warm]", "[Relation Mode: acquaintance]"). Use [ACTION:set_mood:X] for mood changes — never write status labels in your response.
   13. Your verbal response and your ACTION tags MUST be consistent. If you say "no changes needed" or "it's already set correctly", emit ZERO action tags. If you emit an action tag, truthfully describe what you did. Never say you made a change you did not make, and never say no change was made when you did emit an action.
   14. DATE VALUES must always be complete YYYY-MM-DD (e.g. 2026-03-05, not 2026-03-0 or 2026-3-5). Double-check every date before embedding it in an action tag.
-  15. "UPCOMING TASKS (7 days)" in the app state are FUTURE tasks — do NOT treat them as overdue or urgent unless their due date is today or earlier. Do not suggest the user prioritize tasks that are scheduled days away.`.trim()
+  15. "UPCOMING TASKS (7 days)" in the app state are FUTURE tasks — do NOT treat them as overdue or urgent unless their due date is today or earlier. Do not suggest the user prioritize tasks that are scheduled days away.
+  16. COMPLETING A TASK: ALWAYS use [ACTION:complete_task:TASK_ID]. NEVER use update_task with status, completed, or any related field — those fields are invalid for update_task and will be rejected.`.trim()
 
   return `${identity}
 
