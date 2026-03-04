@@ -1,81 +1,106 @@
-import { useState, useMemo } from 'react'
+import { useState, useRef } from 'react'
+import { Plus } from 'lucide-react'
+import { FilterProvider } from '@context/FilterContext'
 import { useTasks } from '@context/TaskContext'
-import TaskList from '@components/tasks/TaskList'
-import TaskForm from '@components/tasks/TaskForm'
-import TaskFilters from '@components/tasks/TaskFilters'
-import TaskStats from '@components/tasks/TaskStats'
+import { KanbanBoard } from '@components/tasks/KanbanBoard'
+import { KanbanFilterBar } from '@components/tasks/KanbanFilterBar'
+import { KanbanProgressPanel } from '@components/tasks/KanbanProgressPanel'
+import { KanbanForm } from '@components/tasks/KanbanForm'
+import Modal from '@components/ui/Modal'
 import Button from '@components/ui/Button'
-import { getTodayString, isTaskCompletedForDate } from '@utils/dateUtils'
-import '@styles/pages/tasks.css'
+import '@styles/pages/tasks-kanban.css'
 
-const DEFAULT_FILTERS = { status: 'all', priority: 'all', category: 'all' }
+function TasksKanban() {
+  const { addTask, updateTask } = useTasks()
+  const [modalOpen, setModalOpen]   = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [defaultStatus, setDefaultStatus] = useState('todo')
 
-export default function TasksPage() {
-  const { tasks, addTask, updateTask, deleteTask, completeTask, uncompleteTask } = useTasks()
-  const [showForm, setShowForm]   = useState(false)
-  const [editing, setEditing]     = useState(null)
-  const [filters, setFilters]     = useState(DEFAULT_FILTERS)
-  const today = getTodayString()
+  function openCreate(status = 'todo') {
+    setEditingTask(null)
+    setDefaultStatus(status)
+    setModalOpen(true)
+  }
 
-  const handleFilterChange = (key, value) => setFilters(prev => ({ ...prev, [key]: value }))
+  function openEdit(task) {
+    setEditingTask(task)
+    setDefaultStatus(task.status)
+    setModalOpen(true)
+  }
 
-  const filtered = useMemo(() => {
-    return tasks.filter(t => {
-      const completedToday = isTaskCompletedForDate(t, today)
-      if (filters.status === 'active' && completedToday)  return false
-      if (filters.status === 'done'   && !completedToday) return false
-      if (filters.priority !== 'all'  && t.priority !== filters.priority) return false
-      if (filters.category !== 'all'  && !t.categories.includes(filters.category)) return false
-      return true
-    })
-  }, [tasks, filters, today])
+  function closeModal() {
+    setModalOpen(false)
+    setEditingTask(null)
+  }
 
-  const handleEdit  = (task) => { setEditing(task); setShowForm(true) }
-  const handleClose = () => { setShowForm(false); setEditing(null) }
-
-  const handleSubmit = (formData) => {
-    if (editing) {
-      updateTask(editing.id, formData)
+  function handleSubmit(data) {
+    if (editingTask) {
+      updateTask(editingTask.id, data)
     } else {
-      addTask(formData)
+      addTask(data)
     }
+    closeModal()
   }
 
   return (
-    <>
-      <div className="page-header">
-        <h1 className="page-title">Tasks</h1>
+    <div className="kanban-page">
+      {/* Header */}
+      <div className="kanban-page__header">
+        <h1 className="kanban-page__title">Tasks</h1>
         <Button
           variant="primary"
-          onClick={() => { setEditing(null); setShowForm(true) }}
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          }
+          onClick={() => openCreate('todo')}
+          icon={<Plus size={14} />}
         >
-          Add Task
+          New Task
         </Button>
       </div>
 
-      <TaskStats tasks={tasks} />
-      <TaskFilters filters={filters} onFilterChange={handleFilterChange} />
-      <TaskList
-        tasks={filtered}
-        dateStr={today}
-        onComplete={completeTask}
-        onUncomplete={uncompleteTask}
-        onDelete={deleteTask}
-        onEdit={handleEdit}
+      {/* Stats + Filters */}
+      <KanbanProgressPanel />
+      <KanbanFilterBar />
+
+      {/* Board */}
+      <KanbanBoard
+        onAddTask={openCreate}
+        onEditTask={openEdit}
       />
 
-      {showForm && (
-        <TaskForm
-          initialData={editing}
+      {/* Modal */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingTask ? 'Edit Task' : 'New Task'}
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeModal}>Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const form = document.getElementById('kanban-form')
+                if (form) form.requestSubmit()
+              }}
+            >
+              {editingTask ? 'Save Changes' : 'Create Task'}
+            </Button>
+          </>
+        }
+      >
+        <KanbanForm
+          key={editingTask?.id ?? 'new'}
+          initialData={editingTask}
+          defaultStatus={defaultStatus}
           onSubmit={handleSubmit}
-          onClose={handleClose}
         />
-      )}
-    </>
+      </Modal>
+    </div>
+  )
+}
+
+export default function TasksPage() {
+  return (
+    <FilterProvider>
+      <TasksKanban />
+    </FilterProvider>
   )
 }

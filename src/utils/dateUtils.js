@@ -158,6 +158,16 @@ export function isTaskCompletedForDate(task, dateStr) {
   return (task.completedDates ?? []).includes(dateStr)
 }
 
+// Returns "Today", "Tomorrow", short date, or null for due date display
+export function formatDue(dateStr) {
+  if (!dateStr) return null
+  const today    = getTodayString()
+  const tomorrow = offsetDate(today, 1)
+  if (dateStr === today)    return 'Today'
+  if (dateStr === tomorrow) return 'Tomorrow'
+  return formatDateShort(dateStr)
+}
+
 // Formats "HH:MM" → "H:MM AM/PM"
 export function formatTime(timeStr) {
   if (!timeStr) return ''

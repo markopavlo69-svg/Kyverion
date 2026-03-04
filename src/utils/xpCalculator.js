@@ -33,7 +33,7 @@ export function progressPercent(totalXP) {
 }
 
 export function getXPForTask(priority) {
-  const map = { low: 10, medium: 25, high: 50 }
+  const map = { low: 10, medium: 25, high: 50, urgent: 75 }
   return map[priority] ?? 10
 }
 
