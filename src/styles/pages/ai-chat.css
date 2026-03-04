@@ -746,6 +746,88 @@
   }
 }
 
+/* ── Pending action confirmation cards ───────────────────── */
+.msg-pending-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.msg-confirm-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--char-color, var(--accent-teal)) 8%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--char-color, var(--accent-teal)) 25%, transparent);
+  font-size: 12px;
+  animation: msg-in 160ms ease;
+}
+
+.msg-confirm-card--accepted {
+  background: color-mix(in srgb, var(--priority-low) 8%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--priority-low) 25%, transparent);
+}
+
+.msg-confirm-card--refused {
+  background: color-mix(in srgb, var(--priority-high) 8%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--priority-high) 20%, transparent);
+  opacity: 0.7;
+}
+
+.msg-confirm-desc {
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.msg-confirm-btns {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.msg-confirm-btn {
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 9px;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.msg-confirm-btn:active { transform: scale(0.96); }
+
+.msg-confirm-btn--accept {
+  background: color-mix(in srgb, var(--priority-low) 20%, transparent);
+  color: var(--priority-low);
+  border: 1px solid color-mix(in srgb, var(--priority-low) 35%, transparent);
+}
+.msg-confirm-btn--accept:hover {
+  background: color-mix(in srgb, var(--priority-low) 30%, transparent);
+}
+
+.msg-confirm-btn--refuse {
+  background: color-mix(in srgb, var(--priority-high) 15%, transparent);
+  color: var(--priority-high);
+  border: 1px solid color-mix(in srgb, var(--priority-high) 30%, transparent);
+}
+.msg-confirm-btn--refuse:hover {
+  background: color-mix(in srgb, var(--priority-high) 25%, transparent);
+}
+
+.msg-confirm-status {
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.msg-confirm-status--accepted { color: var(--priority-low);  }
+.msg-confirm-status--refused  { color: var(--priority-high); }
+
 /* ── Responsive: mobile fixes ─────────────────────────────── */
 @media (max-width: 480px) {
   .ai-chat-root {

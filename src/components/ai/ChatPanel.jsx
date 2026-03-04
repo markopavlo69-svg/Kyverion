@@ -14,6 +14,7 @@ export default function ChatPanel() {
     isFullscreen,
     preferredModel,
     sendMessage,
+    confirmAction,
     toggleChat,
     toggleFullscreen,
     deleteHistory,
@@ -193,6 +194,7 @@ export default function ChatPanel() {
             key={msg.id}
             message={msg}
             character={activeCharacter}
+            onConfirmAction={confirmAction}
           />
         ))}
 

@@ -13,7 +13,7 @@ import { NS_MILESTONES }         from './NoSmokeContext'
 import { CHARACTERS, CHARACTER_LIST, DEFAULT_CHARACTER } from '@data/characters'
 import { streamChat, DEFAULT_MODEL } from '@services/groqService'
 import { buildAppState }         from '@utils/appStateBuilder'
-import { parseActions, executeActions } from '@utils/aiActionParser'
+import { parseActions, executeActions, executeDataAction } from '@utils/aiActionParser'
 import { deriveRelationshipMode, computeDisciplineScore, clampStat, DEFAULT_CHAR_STATS } from '@utils/relationshipEngine'
 
 const AIContext = createContext(null)
@@ -117,10 +117,7 @@ FINANCE:
     ASK IF MISSING: If type or amount is unclear, ask before adding.
   [ACTION:delete_finance:TRANSACTION_ID] — delete a finance entry
 
-LEARNING:
-  [ACTION:log_learning_session:AREA_ID|MINUTES] — log time spent on a learning area
-    ASK IF MISSING: If area is unclear, list available areas and ask which one.
-  [ACTION:add_note:AREA_ID|TITLE|CONTENT] — add a note to a learning area
+LEARNING: (read-only — you can see learning areas and sessions, but cannot create sessions or notes)
 
 NAVIGATION:
   [ACTION:navigate:PAGE] — pages: dashboard/tasks/habits/calendar/finance/learning/nosmoke/workout/profile
@@ -138,7 +135,7 @@ STRICT RULES — NEVER VIOLATE:
   6. NEVER navigate unless the user asks you to go somewhere.
   7. Only adjust stats when something genuinely meaningful happens — not every message.
   8. Match response length to the message: casual greetings ("hi", "how are you") get 1-2 sentences MAX. Only give longer responses when the user asks a real question or shares something substantial. Never pad, never over-explain.
-  9. Always confirm in your response text what actions you took.
+  9. For data-changing actions (tasks, habits, appointments, workouts, finance), the user will be shown a confirmation card in the chat before anything executes. Mention in your response what you are PROPOSING — say "I'll propose to add X" or "I'm suggesting to mark X as done", NOT "I have done X". Never claim an action is done until the user confirms it.
   10. ASK before creating workout sessions or finance entries if key details are missing.
   11. When creating any entry (task, appointment, finance, workout), use ONLY the title and details the user stated in their CURRENT message. NEVER pull names, titles, or details from memory for new entries.
   12. NEVER output mood or relationship status as visible text (e.g. "[Current Mood: warm]", "[Relation Mode: acquaintance]"). Use [ACTION:set_mood:X] for mood changes — never write status labels in your response.
@@ -307,13 +304,14 @@ export function AIProvider({ children }) {
   // ── Persistence helpers ──────────────────────────────────────────────────
   const saveHistory = useCallback(async (characterId, messages) => {
     const toSave = messages.slice(-MAX_STORED_MESSAGES).map(m => ({
-      id:          m.id,
-      role:        m.role,
-      content:     m.content,
-      timestamp:   m.timestamp,
-      isProactive: m.isProactive  ?? false,
-      hadImage:    m.hadImage     ?? false,
-      actions:     m.actions      ?? [],
+      id:             m.id,
+      role:           m.role,
+      content:        m.content,
+      timestamp:      m.timestamp,
+      isProactive:    m.isProactive    ?? false,
+      hadImage:       m.hadImage       ?? false,
+      actions:        m.actions        ?? [],
+      pendingActions: m.pendingActions ?? [],
     }))
     await supabase.from('ai_chat_history').upsert(
       { user_id: user.id, character_id: characterId, messages: toSave, updated_at: new Date().toISOString() },
@@ -379,6 +377,61 @@ export function AIProvider({ children }) {
       return { ...prev, [charId]: updated }
     })
   }, [saveCharStats])
+
+  // ── Confirm or refuse a pending action ──────────────────────────────────
+  const confirmAction = useCallback(async (msgId, actionIdx, approved) => {
+    const charId  = activeCharRef.current
+    const history = historiesRef.current[charId]
+    const msg     = history?.find(m => m.id === msgId)
+    if (!msg?.pendingActions?.[actionIdx]) return
+    const action = msg.pendingActions[actionIdx]
+    if (action.status !== 'pending') return
+
+    if (approved) {
+      const ctx = {
+        tasks:              tasksRef.current,
+        completeTask, deleteTask, updateTask, addTask,
+        habits:             habitsRef.current,
+        completeHabitToday,
+        appointments:       appointmentsRef.current,
+        addAppointment, updateAppointment,
+        addEmptyWorkout,
+        addWorkoutSession,
+        addTransaction, deleteTransaction,
+      }
+      const result = await executeDataAction({ type: action.type, params: action.params }, ctx)
+      setChatHistories(prev => {
+        const updated = prev[charId].map(m => {
+          if (m.id !== msgId) return m
+          const newPending = m.pendingActions.map((a, i) =>
+            i === actionIdx ? { ...a, status: 'accepted' } : a
+          )
+          return { ...m, pendingActions: newPending, actions: [...(m.actions ?? []), result] }
+        })
+        saveHistory(charId, updated)
+        return { ...prev, [charId]: updated }
+      })
+    } else {
+      await rememberFact(`User refused: "${action.description}". Avoid suggesting this without explicit request.`)
+      setChatHistories(prev => {
+        const updated = prev[charId].map(m => {
+          if (m.id !== msgId) return m
+          const newPending = m.pendingActions.map((a, i) =>
+            i === actionIdx ? { ...a, status: 'refused' } : a
+          )
+          return { ...m, pendingActions: newPending }
+        })
+        saveHistory(charId, updated)
+        return { ...prev, [charId]: updated }
+      })
+    }
+  }, [
+    completeTask, deleteTask, updateTask, addTask,
+    completeHabitToday, addAppointment, updateAppointment,
+    addEmptyWorkout, addWorkoutSession,
+    addTransaction, deleteTransaction,
+    rememberFact, saveHistory,
+  ])
 
   // ── Delete chat history for a character ─────────────────────────────────
   const deleteHistory = useCallback(async (charId) => {
@@ -570,8 +623,7 @@ export function AIProvider({ children }) {
 
       // Parse + execute actions (on think-stripped text)
       const { cleanText, actions: parsedActions } = parseActions(stripThink(fullResponse))
-      const { areas: latestLearnAreas } = learningRef.current
-      const actionResults = await executeActions(parsedActions, {
+      const { executed: actionResults, pending: pendingActions } = await executeActions(parsedActions, {
         // Task actions
         tasks:             tasksRef.current,
         completeTask,
@@ -591,9 +643,6 @@ export function AIProvider({ children }) {
         // Finance actions
         addTransaction,
         deleteTransaction,
-        // Learning actions
-        logLearningSession,
-        addNote: (areaId, note) => addNote(areaId, note),
         // Navigation / memory
         navigate:          navigateFnRef.current,
         remember:          rememberFact,
@@ -603,12 +652,13 @@ export function AIProvider({ children }) {
       }, userText ?? '')
 
       const finalAiMsg = {
-        id:          aiMsgId,
-        role:        'assistant',
-        content:     cleanText,
-        timestamp:   new Date().toISOString(),
-        isStreaming: false,
-        actions:     actionResults,
+        id:             aiMsgId,
+        role:           'assistant',
+        content:        cleanText,
+        timestamp:      new Date().toISOString(),
+        isStreaming:    false,
+        actions:        actionResults,
+        pendingActions: pendingActions,
       }
 
       setChatHistories(prev => {
@@ -639,7 +689,6 @@ export function AIProvider({ children }) {
     completeHabitToday, addAppointment, updateAppointment,
     addEmptyWorkout, addWorkoutSession,
     addTransaction, deleteTransaction,
-    logLearningSession, addNote,
     rememberFact, updateCharStat, setCharMood, saveHistory,
   ])
 
@@ -789,6 +838,7 @@ export function AIProvider({ children }) {
       isStreaming,
       unreadCount,
       sendMessage,
+      confirmAction,
       switchCharacter,
       toggleChat,
       toggleFullscreen,

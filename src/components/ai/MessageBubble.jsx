@@ -1,4 +1,4 @@
-export default function MessageBubble({ message, character }) {
+export default function MessageBubble({ message, character, onConfirmAction }) {
   const isUser = message.role === 'user'
 
   return (
@@ -40,7 +40,40 @@ export default function MessageBubble({ message, character }) {
           {message.isStreaming && <span className="streaming-cursor" aria-hidden>▋</span>}
         </div>
 
-        {/* Action results */}
+        {/* Pending action confirmation cards */}
+        {message.pendingActions?.length > 0 && (
+          <div className="msg-pending-actions">
+            {message.pendingActions.map((action, i) => (
+              <div key={i} className={`msg-confirm-card msg-confirm-card--${action.status}`}>
+                <span className="msg-confirm-desc">{action.description}</span>
+                {action.status === 'pending' ? (
+                  <div className="msg-confirm-btns">
+                    <button
+                      type="button"
+                      className="msg-confirm-btn msg-confirm-btn--accept"
+                      onClick={() => onConfirmAction?.(message.id, i, true)}
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      type="button"
+                      className="msg-confirm-btn msg-confirm-btn--refuse"
+                      onClick={() => onConfirmAction?.(message.id, i, false)}
+                    >
+                      ✗ Refuse
+                    </button>
+                  </div>
+                ) : (
+                  <span className={`msg-confirm-status msg-confirm-status--${action.status}`}>
+                    {action.status === 'accepted' ? '✓ Accepted' : '✗ Refused'}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Executed action results */}
         {message.actions?.length > 0 && (
           <div className="msg-actions">
             {message.actions.map((a, i) => (
