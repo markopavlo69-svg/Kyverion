@@ -32,13 +32,14 @@ export default function NoSmokePage() {
     NS_MILESTONES, NS_QUIT_THRESHOLD, NS_QUIT_XP,
     ensureStarted, saveSettings, logSmoke,
     getCurrentStreak, checkMilestones,
-    quitForGoodClaimed, claimQuitForGood,
+    quitForGoodClaimed, claimQuitForGood, resetTimer,
   } = useNoSmoke()
 
   const [now, setNow]                           = useState(Date.now())
   const [showSettings, setShowSettings]         = useState(false)
   const [showConfirm, setShowConfirm]           = useState(false)
   const [showQuitConfirm, setShowQuitConfirm]   = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [dailyCigarettes, setDailyCigarettes]   = useState('')
   const [packPrice, setPackPrice]               = useState('')
 
@@ -112,6 +113,12 @@ export default function NoSmokePage() {
   const handleConfirmSmoked = () => {
     logSmoke()
     setShowConfirm(false)
+  }
+
+  const handleConfirmReset = () => {
+    resetTimer()
+    setShowResetConfirm(false)
+    setShowSettings(false)
   }
 
   const handleClaimQuit = () => {
@@ -323,7 +330,32 @@ export default function NoSmokePage() {
             />
             <p className="form-hint">Price per pack of 20 cigarettes.</p>
           </div>
+          <div className="form-group" style={{ marginTop: '1rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+            <label className="form-label" style={{ color: 'var(--priority-high)' }}>Danger Zone</label>
+            <Button variant="danger" onClick={() => setShowResetConfirm(true)} style={{ width: '100%' }}>
+              Reset Timer
+            </Button>
+            <p className="form-hint">Clears your log and restarts the streak from now on this device. Your personal record is kept.</p>
+          </div>
         </div>
+      </Modal>
+
+      {/* ── Reset Confirm Modal ── */}
+      <Modal
+        isOpen={showResetConfirm}
+        title="Reset Timer?"
+        onClose={() => setShowResetConfirm(false)}
+        footer={
+          <div className="ns-modal-footer">
+            <Button variant="ghost" onClick={() => setShowResetConfirm(false)}>Cancel</Button>
+            <Button variant="danger" onClick={handleConfirmReset}>Yes, Reset</Button>
+          </div>
+        }
+      >
+        <p className="ns-confirm-text">
+          This will restart your smoke-free timer from <strong>right now</strong> on this device and clear your smoke log.
+          Your personal record of <strong style={{ color: 'var(--accent-gold)' }}>{formatDuration(record)}</strong> will be preserved.
+        </p>
       </Modal>
 
     </div>

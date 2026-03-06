@@ -124,6 +124,16 @@ export function NoSmokeProvider({ children }) {
     persist({ log: newLog, record: newRecord, milestones_awarded: preserved })
   }, [getCurrentStreak, record, log, persist])
 
+  const resetTimer = useCallback(() => {
+    const now = Date.now()
+    const preserved = quitClaimedRef.current ? [NS_QUIT_SENTINEL] : []
+    awardedRef.current = new Set(preserved)
+    setStartTime(now)
+    setLog([])
+    setMilestonesAwarded(preserved)
+    persist({ start_time: now, log: [], milestones_awarded: preserved })
+  }, [persist])
+
   const claimQuitForGood = useCallback(() => {
     if (quitClaimedRef.current) return
     quitClaimedRef.current = true
@@ -154,6 +164,7 @@ export function NoSmokeProvider({ children }) {
       getCurrentStreak,
       checkMilestones,
       claimQuitForGood,
+      resetTimer,
     }}>
       {children}
     </NoSmokeContext.Provider>
