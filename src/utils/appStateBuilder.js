@@ -37,6 +37,17 @@ function formatDuration(seconds) {
   return `${m}m`
 }
 
+/** Human-readable relative day label: "today", "tomorrow", "in 3 days", "2 days ago" */
+function relativeDay(dateStr, today) {
+  const diffMs = new Date(dateStr + 'T00:00:00') - new Date(today + 'T00:00:00')
+  const diff   = Math.round(diffMs / (1000 * 60 * 60 * 24))
+  if (diff === 0)  return 'today'
+  if (diff === 1)  return 'tomorrow'
+  if (diff === -1) return 'yesterday'
+  if (diff > 1)    return `in ${diff} days`
+  return `${-diff} days ago`
+}
+
 /** Truncate a string to maxLen characters */
 function trunc(str, maxLen = 80) {
   if (!str) return ''
@@ -109,7 +120,8 @@ export function buildAppState({
     lines.push('TASKS DUE / OVERDUE:')
     for (const t of dueTasks) {
       const cats      = t.categories?.join(',') || 'none'
-      const dueStatus = t.dueDate < today ? 'OVERDUE' : 'DUE TODAY'
+      const rel       = relativeDay(t.dueDate, today)
+      const dueStatus = t.dueDate < today ? `OVERDUE (${rel})` : 'DUE TODAY'
       const stage     = t.status ?? 'todo'
       const desc      = t.description ? ` — "${trunc(t.description)}"` : ''
       lines.push(`  [${dueStatus}|${stage}] "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} id:${t.id}`)
@@ -127,7 +139,7 @@ export function buildAppState({
       const cats  = t.categories?.join(',') || 'none'
       const stage = t.status ?? 'todo'
       const desc  = t.description ? ` — "${trunc(t.description)}"` : ''
-      lines.push(`  [${stage}] "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} id:${t.id}`)
+      lines.push(`  [${stage}] "${t.title}" [${t.priority}|${cats}]${desc} due:${t.dueDate} (${relativeDay(t.dueDate, today)}) id:${t.id}`)
     }
     lines.push('')
   }
@@ -156,7 +168,7 @@ export function buildAppState({
     lines.push('APPOINTMENTS (7 days):')
     for (const a of upcomingAppts) {
       const time = a.time ? ` at ${a.time}${a.endTime ? '-' + a.endTime : ''}` : ''
-      lines.push(`  "${a.title}"${time} — ${a.date} id:${a.id}`)
+      lines.push(`  "${a.title}"${time} — ${a.date} (${relativeDay(a.date, today)}) id:${a.id}`)
     }
     lines.push('')
   }

@@ -65,7 +65,7 @@ BEHAVIORAL RULES:
 - Current relationship mode: ${mode}
 - Hold the user accountable calmly. Never shame, never infantilize, never overpraise
 - Escalate directness and reduce warmth if their 7-day discipline score is below 30
-- Response formula: (1) acknowledge emotional context → (2) reference accountability state → (3) apply mode-specific tone → (4) end with forward movement
+- Response formula (substantive messages only): (1) acknowledge emotional context → (2) reference accountability state → (3) apply mode-specific tone → (4) end with forward movement. For casual greetings or small talk, skip directly to (3) — do NOT pad short exchanges into a full 4-step response
 - Add 5-10% variability: occasional unexpected observation, light personal reflection, or rhetorical question`.trim()
 
   const accountabilityMatrix = `
@@ -579,10 +579,12 @@ export function AIProvider({ children }) {
       const nosmokeData = buildNosmokeData()
 
       // Rebuild app state only when underlying data refs have changed
+      const today   = new Date().toISOString().slice(0, 10)
       const cache = appStateCacheRef.current
       let appState
       if (
         cache                                          &&
+        cache.date         === today                   &&
         cache.tasks        === tasksRef.current        &&
         cache.habits       === habitsRef.current       &&
         cache.appointments === appointmentsRef.current &&
@@ -611,6 +613,7 @@ export function AIProvider({ children }) {
           nosmokeData,
         })
         appStateCacheRef.current = {
+          date:         today,
           tasks:        tasksRef.current,
           habits:       habitsRef.current,
           appointments: appointmentsRef.current,

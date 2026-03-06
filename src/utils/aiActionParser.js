@@ -211,6 +211,7 @@ export async function executeDataAction({ type, params }, ctx) {
         const time        = parts[2]?.trim() || ''
         const description = parts[3]?.trim() || ''
         if (!title || !date) { result.description = 'Missing title or date'; break }
+        if (!isValidDate(date)) { result.description = `Invalid date: "${date}" (expected YYYY-MM-DD)`; break }
         ctx.addAppointment({ title, date, time, description })
         result.description = `Appointment "${title}" added for ${date}${time ? ' at ' + time : ''}`
         result.success = true

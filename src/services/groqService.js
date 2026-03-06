@@ -67,7 +67,7 @@ export async function* streamChat(messages, { hasImage = false, model } = {}) {
       messages,
       stream:      true,
       temperature: 0.70,
-      max_tokens:  1024,
+      max_tokens:  3072,
     }),
   }))
 
