@@ -1,13 +1,20 @@
 // ============================================================
-// Groq API Service — streaming chat completions
-// Requires VITE_GROQ_API_KEY in .env.local
+// Groq API Service — streaming chat completions via Edge Function proxy
 //
-// PRODUCTION NOTE: Before going public, move API calls to a
-// Supabase Edge Function so the key is never in the browser.
+// Requests route through supabase/functions/groq-proxy/index.ts
+// which holds the Groq API key server-side (never in browser).
+//
+// Deploy: supabase functions deploy groq-proxy
+// Secret: supabase secrets set GROQ_API_KEY=<your-key>
+// Then:   remove VITE_GROQ_API_KEY from .env.local
 // ============================================================
 
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
+import { supabase } from '@lib/supabase'
+
+const PROXY_URL     = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/groq-proxy`
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+const VISION_MODEL  = 'meta-llama/llama-4-scout-17b-16e-instruct'
 
 export const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
 
@@ -24,8 +31,22 @@ export const AVAILABLE_MODELS = [
   },
 ]
 
+// Retry with exponential backoff — retries on 429 (rate limit) and 5xx (server errors)
+async function fetchWithRetry(fetchFn, maxRetries = 3) {
+  const delays = [1000, 2000, 4000]
+  let response
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    response = await fetchFn()
+    if (response.ok) return response
+    // Non-retryable: client errors except rate limit
+    if (response.status !== 429 && response.status < 500) return response
+    if (attempt < maxRetries) await new Promise(r => setTimeout(r, delays[attempt]))
+  }
+  return response
+}
+
 /**
- * Async generator that streams chat completion chunks from Groq.
+ * Async generator that streams chat completion chunks via the Groq proxy.
  *
  * @param {Array}   messages          OpenAI-format message array
  * @param {Object}  options
@@ -34,17 +55,18 @@ export const AVAILABLE_MODELS = [
  * @yields {string} Text delta chunks
  */
 export async function* streamChat(messages, { hasImage = false, model } = {}) {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY
-  if (!apiKey) {
-    throw new Error('Groq API key not found. Add VITE_GROQ_API_KEY to your .env.local file.')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('Not authenticated. Please log in.')
   }
 
   const selectedModel = hasImage ? VISION_MODEL : (model ?? DEFAULT_MODEL)
 
-  const response = await fetch(GROQ_API_URL, {
+  const response = await fetchWithRetry(() => fetch(PROXY_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey':        SUPABASE_ANON,
       'Content-Type':  'application/json',
     },
     body: JSON.stringify({
@@ -54,10 +76,10 @@ export async function* streamChat(messages, { hasImage = false, model } = {}) {
       temperature: 0.70,
       max_tokens:  1024,
     }),
-  })
+  }))
 
   if (!response.ok) {
-    let errMsg = `Groq API error ${response.status}`
+    let errMsg = `Proxy error ${response.status}`
     try {
       const errData = await response.json()
       errMsg = errData.error?.message ?? errMsg

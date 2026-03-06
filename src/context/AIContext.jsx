@@ -22,6 +22,8 @@ const AIContext = createContext(null)
 const MAX_STORED_MESSAGES  = 100
 // Max messages sent to the model as conversation history
 const MAX_CONTEXT_MESSAGES = 40
+// Max characters stored in per-character memory (oldest facts dropped when exceeded)
+const MAX_MEMORY_CHARS     = 2000
 
 // ── Initial charStats from character definitions ──────────────────────────────
 function buildInitialCharStats() {
@@ -208,6 +210,8 @@ export function AIProvider({ children }) {
 
   // Track which IDs we've recently sent proactive reminders for
   const proactiveRemindedRef = useRef({}) // { [id]: ISO timestamp }
+  // Cache last computed app state; rebuilt only when underlying data refs change
+  const appStateCacheRef     = useRef(null)
 
   useEffect(() => { tasksRef.current    = tasks       }, [tasks])
   useEffect(() => { habitsRef.current   = habits      }, [habits])
@@ -351,7 +355,15 @@ export function AIProvider({ children }) {
     const charId = activeCharRef.current
     setCharacterMemories(prev => {
       const existing = prev[charId] || ''
-      const updated  = existing ? `${existing}\n${fact}` : fact
+      let updated = existing ? `${existing}\n${fact}` : fact
+      // Trim oldest lines when memory exceeds the cap
+      if (updated.length > MAX_MEMORY_CHARS) {
+        const lines = updated.split('\n')
+        while (updated.length > MAX_MEMORY_CHARS && lines.length > 1) {
+          lines.shift()
+          updated = lines.join('\n')
+        }
+      }
       saveMemory(charId, updated)
       return { ...prev, [charId]: updated }
     })
@@ -566,19 +578,53 @@ export function AIProvider({ children }) {
       const { areas: learnAreas } = learningRef.current
       const nosmokeData = buildNosmokeData()
 
-      const appState = buildAppState({
-        tasks:          tasksRef.current,
-        habits:         habitsRef.current,
-        appointments:   appointmentsRef.current,
-        xpData:         xpDataRef.current,
-        activePage:     activePageRef.current,
-        workoutData:    workoutDataRef.current,
-        charStats:      currentCharStats,
-        disciplineScore,
-        financeData:    { transactions: finTx, currency: finSettings?.currency ?? '€' },
-        learningData:   { areas: learnAreas },
-        nosmokeData,
-      })
+      // Rebuild app state only when underlying data refs have changed
+      const cache = appStateCacheRef.current
+      let appState
+      if (
+        cache                                          &&
+        cache.tasks        === tasksRef.current        &&
+        cache.habits       === habitsRef.current       &&
+        cache.appointments === appointmentsRef.current &&
+        cache.xpData       === xpDataRef.current       &&
+        cache.workoutData  === workoutDataRef.current  &&
+        cache.finTx        === finTx                   &&
+        cache.learnAreas   === learnAreas              &&
+        cache.ns           === nsRef.current           &&
+        cache.charStats    === currentCharStats        &&
+        cache.disciplineScore === disciplineScore      &&
+        cache.activePage   === activePageRef.current
+      ) {
+        appState = cache.state
+      } else {
+        appState = buildAppState({
+          tasks:          tasksRef.current,
+          habits:         habitsRef.current,
+          appointments:   appointmentsRef.current,
+          xpData:         xpDataRef.current,
+          activePage:     activePageRef.current,
+          workoutData:    workoutDataRef.current,
+          charStats:      currentCharStats,
+          disciplineScore,
+          financeData:    { transactions: finTx, currency: finSettings?.currency ?? '€' },
+          learningData:   { areas: learnAreas },
+          nosmokeData,
+        })
+        appStateCacheRef.current = {
+          tasks:        tasksRef.current,
+          habits:       habitsRef.current,
+          appointments: appointmentsRef.current,
+          xpData:       xpDataRef.current,
+          workoutData:  workoutDataRef.current,
+          finTx,
+          learnAreas,
+          ns:           nsRef.current,
+          charStats:    currentCharStats,
+          disciplineScore,
+          activePage:   activePageRef.current,
+          state:        appState,
+        }
+      }
 
       const memory       = memoriesRef.current[charId] || ''
       const systemPrompt = buildSystemPrompt(character, memory, appState)
