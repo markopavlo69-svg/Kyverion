@@ -4,11 +4,7 @@
 // Deploy:
 //   supabase functions deploy groq-proxy
 //   supabase secrets set GROQ_API_KEY=<your-key>
-//
-// After deploying, remove VITE_GROQ_API_KEY from .env.local
 // ============================================================
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
@@ -23,23 +19,10 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: CORS_HEADERS })
   }
 
-  // Verify the caller is an authenticated Supabase user
+  // Require a Bearer token (user must be logged in) and the Supabase anon key
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    })
-  }
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } },
-  )
-
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) {
+  const apiKey     = req.headers.get('apikey')
+  if (!authHeader?.startsWith('Bearer ') || !apiKey) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
