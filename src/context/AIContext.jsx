@@ -21,7 +21,7 @@ const AIContext = createContext(null)
 // Max messages kept in Supabase per character
 const MAX_STORED_MESSAGES  = 100
 // Max messages sent to the model as conversation history
-const MAX_CONTEXT_MESSAGES = 40
+const MAX_CONTEXT_MESSAGES = 20
 // Max characters stored in per-character memory (oldest facts dropped when exceeded)
 const MAX_MEMORY_CHARS     = 2000
 
