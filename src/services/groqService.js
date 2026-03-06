@@ -9,8 +9,6 @@
 // Then:   remove VITE_GROQ_API_KEY from .env.local
 // ============================================================
 
-import { supabase } from '@lib/supabase'
-
 const PROXY_URL     = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/groq-proxy`
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -55,17 +53,12 @@ async function fetchWithRetry(fetchFn, maxRetries = 3) {
  * @yields {string} Text delta chunks
  */
 export async function* streamChat(messages, { hasImage = false, model } = {}) {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.access_token) {
-    throw new Error('Not authenticated. Please log in.')
-  }
-
   const selectedModel = hasImage ? VISION_MODEL : (model ?? DEFAULT_MODEL)
 
   const response = await fetchWithRetry(() => fetch(PROXY_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${SUPABASE_ANON}`,
       'apikey':        SUPABASE_ANON,
       'Content-Type':  'application/json',
     },
