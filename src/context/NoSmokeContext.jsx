@@ -34,6 +34,7 @@ export function NoSmokeProvider({ children }) {
 
   const awardedRef      = useRef(new Set())
   const quitClaimedRef  = useRef(false)
+  const clockOffsetRef  = useRef(0)  // server clock - local clock (ms)
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -57,6 +58,14 @@ export function NoSmokeProvider({ children }) {
       setQuitForGoodClaimed(qfg)
       quitClaimedRef.current = qfg
       awardedRef.current = new Set(ms)
+
+      // Compute offset between Supabase server clock and local clock.
+      // Silently falls back to 0 if the RPC is not yet deployed.
+      const { data: serverMs } = await supabase.rpc('get_server_time')
+      if (typeof serverMs === 'number') {
+        clockOffsetRef.current = serverMs - Date.now()
+      }
+
       setLoaded(true)
     }
     load()
@@ -73,7 +82,7 @@ export function NoSmokeProvider({ children }) {
   // ── Actions ─────────────────────────────────────────────────────────────────
   const ensureStarted = useCallback(() => {
     if (startTime) return
-    const now = Date.now()
+    const now = Date.now() + clockOffsetRef.current
     setStartTime(now)
     persist({ start_time: now })
   }, [startTime, persist])
@@ -81,7 +90,7 @@ export function NoSmokeProvider({ children }) {
   const saveSettings = useCallback((newSettings) => {
     setSettings(newSettings)
     if (!startTime) {
-      const now = Date.now()
+      const now = Date.now() + clockOffsetRef.current
       setStartTime(now)
       persist({ settings: newSettings, start_time: now })
     } else {
@@ -89,7 +98,8 @@ export function NoSmokeProvider({ children }) {
     }
   }, [startTime, persist])
 
-  const getCurrentStreak = useCallback((now = Date.now()) => {
+  const getCurrentStreak = useCallback((rawNow = Date.now()) => {
+    const now = rawNow + clockOffsetRef.current
     if (log.length === 0) {
       const start = Number(startTime) || 0
       return start > 0 ? Math.max(0, Math.floor((now - start) / 1000)) : 0
@@ -114,7 +124,7 @@ export function NoSmokeProvider({ children }) {
   const logSmoke = useCallback(() => {
     const streak = getCurrentStreak()
     const newRecord = streak > record ? streak : record
-    const newLog    = [...log, Date.now()]
+    const newLog    = [...log, Date.now() + clockOffsetRef.current]
     if (newRecord > record) setRecord(newRecord)
     setLog(newLog)
     // Preserve quit-for-good sentinel — achievement is permanent even through relapses
@@ -125,7 +135,7 @@ export function NoSmokeProvider({ children }) {
   }, [getCurrentStreak, record, log, persist])
 
   const resetTimer = useCallback(() => {
-    const now = Date.now()
+    const now = Date.now() + clockOffsetRef.current
     const preserved = quitClaimedRef.current ? [NS_QUIT_SENTINEL] : []
     awardedRef.current = new Set(preserved)
     setStartTime(now)
