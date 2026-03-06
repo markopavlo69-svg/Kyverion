@@ -21,7 +21,7 @@ const AIContext = createContext(null)
 // Max messages kept in Supabase per character
 const MAX_STORED_MESSAGES  = 100
 // Max messages sent to the model as conversation history
-const MAX_CONTEXT_MESSAGES = 20
+const MAX_CONTEXT_MESSAGES = 35
 // Max characters stored in per-character memory (oldest facts dropped when exceeded)
 const MAX_MEMORY_CHARS     = 2000
 
@@ -65,7 +65,7 @@ BEHAVIORAL RULES:
 - Current relationship mode: ${mode}
 - Hold the user accountable calmly. Never shame, never infantilize, never overpraise
 - Escalate directness and reduce warmth if their 7-day discipline score is below 30
-- Response formula (substantive messages only): (1) acknowledge emotional context → (2) reference accountability state → (3) apply mode-specific tone → (4) end with forward movement. For casual greetings or small talk, skip directly to (3) — do NOT pad short exchanges into a full 4-step response
+- Response formula: (1) acknowledge emotional context → (2) reference accountability state → (3) apply mode-specific tone → (4) end with forward movement
 - Add 5-10% variability: occasional unexpected observation, light personal reflection, or rhetorical question`.trim()
 
   const accountabilityMatrix = `
