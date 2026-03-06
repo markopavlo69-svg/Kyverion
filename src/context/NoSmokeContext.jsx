@@ -30,6 +30,7 @@ export function NoSmokeProvider({ children }) {
   const [startTime,          setStartTime]          = useState(null)
   const [milestonesAwarded,  setMilestonesAwarded]  = useState([])
   const [quitForGoodClaimed, setQuitForGoodClaimed] = useState(false)
+  const [loaded,             setLoaded]             = useState(false)
 
   const awardedRef      = useRef(new Set())
   const quitClaimedRef  = useRef(false)
@@ -43,8 +44,8 @@ export function NoSmokeProvider({ children }) {
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (error) { console.error('NoSmoke load error:', error); return }
-      if (!data) return // no row yet
+      if (error) { console.error('NoSmoke load error:', error); setLoaded(true); return }
+      if (!data) { setLoaded(true); return } // no row yet
 
       const ms  = data.milestones_awarded ?? []
       const qfg = ms.includes(NS_QUIT_SENTINEL)
@@ -56,6 +57,7 @@ export function NoSmokeProvider({ children }) {
       setQuitForGoodClaimed(qfg)
       quitClaimedRef.current = qfg
       awardedRef.current = new Set(ms)
+      setLoaded(true)
     }
     load()
   }, [user.id])
@@ -89,10 +91,10 @@ export function NoSmokeProvider({ children }) {
 
   const getCurrentStreak = useCallback((now = Date.now()) => {
     if (log.length === 0) {
-      const start = startTime || 0
-      return start > 0 ? Math.floor((now - start) / 1000) : 0
+      const start = Number(startTime) || 0
+      return start > 0 ? Math.max(0, Math.floor((now - start) / 1000)) : 0
     }
-    return Math.floor((now - log[log.length - 1]) / 1000)
+    return Math.max(0, Math.floor((now - Number(log[log.length - 1])) / 1000))
   }, [log, startTime])
 
   const checkMilestones = useCallback((streakSeconds) => {
@@ -142,6 +144,7 @@ export function NoSmokeProvider({ children }) {
       startTime,
       milestonesAwarded,
       quitForGoodClaimed,
+      loaded,
       NS_MILESTONES,
       NS_QUIT_THRESHOLD,
       NS_QUIT_XP,

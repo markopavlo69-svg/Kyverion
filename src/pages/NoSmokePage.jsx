@@ -28,7 +28,7 @@ function formatDuration(totalSeconds) {
 
 export default function NoSmokePage() {
   const {
-    settings, log, record, startTime,
+    settings, log, record, startTime, loaded,
     NS_MILESTONES, NS_QUIT_THRESHOLD, NS_QUIT_XP,
     ensureStarted, saveSettings, logSmoke,
     getCurrentStreak, checkMilestones,
@@ -42,8 +42,8 @@ export default function NoSmokePage() {
   const [dailyCigarettes, setDailyCigarettes]   = useState('')
   const [packPrice, setPackPrice]               = useState('')
 
-  // Start tracking on first page visit
-  useEffect(() => { ensureStarted() }, [ensureStarted])
+  // Start tracking on first page visit — only after DB data has loaded
+  useEffect(() => { if (loaded) ensureStarted() }, [loaded, ensureStarted])
 
   // Tick every second → drives the live timer
   useEffect(() => {
