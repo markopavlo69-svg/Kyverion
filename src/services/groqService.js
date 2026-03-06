@@ -22,14 +22,6 @@ export const AVAILABLE_MODELS = [
     label:       'Llama 3.3 70B',
     description: 'Default — fast, natural conversation',
   },
-  {
-    id:            'qwen/qwen3-32b',
-    label:         'Qwen3 32B',
-    description:   'More deliberate responses (thinking disabled to save tokens)',
-    // Qwen3 extended thinking generates thousands of hidden reasoning tokens per message.
-    // Always pass enable_thinking: false to stay within free tier limits.
-    extraBody:     { enable_thinking: false },
-  },
 ]
 
 // Retry with exponential backoff — retries on 429 (rate limit) and 5xx (server errors)
@@ -57,7 +49,6 @@ async function fetchWithRetry(fetchFn, maxRetries = 3) {
  */
 export async function* streamChat(messages, { hasImage = false, model } = {}) {
   const selectedModel = hasImage ? VISION_MODEL : (model ?? DEFAULT_MODEL)
-  const modelDef      = AVAILABLE_MODELS.find(m => m.id === selectedModel)
 
   const response = await fetchWithRetry(() => fetch(PROXY_URL, {
     method: 'POST',
@@ -72,7 +63,6 @@ export async function* streamChat(messages, { hasImage = false, model } = {}) {
       stream:      true,
       temperature: 0.70,
       max_tokens:  3072,
-      ...(modelDef?.extraBody ?? {}),
     }),
   }))
 

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: CORS_HEADERS })
   }
 
-  // Require a Bearer token (user must be logged in) and the Supabase anon key
+  // Require a Bearer token and the Supabase anon key
   const authHeader = req.headers.get('Authorization')
   const apiKey     = req.headers.get('apikey')
   if (!authHeader?.startsWith('Bearer ') || !apiKey) {
