@@ -11,7 +11,7 @@ import { useLearning }           from './LearningContext'
 import { useNoSmoke }            from './NoSmokeContext'
 import { NS_MILESTONES }         from './NoSmokeContext'
 import { CHARACTERS, CHARACTER_LIST, DEFAULT_CHARACTER } from '@data/characters'
-import { streamChat, DEFAULT_MODEL } from '@services/groqService'
+import { streamChat, fetchCompletion, DEFAULT_MODEL } from '@services/groqService'
 import { buildAppState }         from '@utils/appStateBuilder'
 import { parseActions, executeActions, executeDataAction } from '@utils/aiActionParser'
 import { deriveRelationshipMode, computeDisciplineScore, clampStat, DEFAULT_CHAR_STATS } from '@utils/relationshipEngine'
@@ -23,7 +23,7 @@ const MAX_STORED_MESSAGES  = 100
 // Max messages sent to the model as conversation history
 const MAX_CONTEXT_MESSAGES = 35
 // Max characters stored in per-character memory (oldest facts dropped when exceeded)
-const MAX_MEMORY_CHARS     = 2000
+const MAX_MEMORY_CHARS     = 4000
 
 // ── Initial charStats from character definitions ──────────────────────────────
 function buildInitialCharStats() {
@@ -107,7 +107,15 @@ RELATIONSHIP & MOOD:
   [ACTION:set_mood:MOOD]                — set mood: neutral/composed/teasing/warm/proud/disappointed/protective/intimate/vulnerable/firm
 
 MEMORY:
-  [ACTION:remember:FACT]                — persist an important fact about the user to your memory
+  [ACTION:remember:FACT]                — persist a fact about the user to long-term memory (survives history clears)
+  USE THIS PROACTIVELY — do not wait for "important" moments. Remember whenever the user mentions:
+  • Goals, projects, or things they are actively working on
+  • Recurring struggles, habits they find hard, or patterns they mention more than once
+  • Personal context: schedule, job, lifestyle, relationships, health situation
+  • Preferences: how they like to be spoken to, what motivates or demotivates them
+  • Emotional context: something they are anxious about, proud of, or avoiding
+  • Any specific number or milestone they reference (e.g. "I want to hit 80kg", "I have a deadline Friday")
+  Format facts concisely: "User is training for a half-marathon in May", "User struggles to wake before 9am", "User works night shifts"
 
 TASKS:
   [ACTION:complete_task:TASK_ID]        — mark task done (STRICT: only if user said "I did/finished/completed X" in THIS exact message)
@@ -473,14 +481,50 @@ export function AIProvider({ children }) {
     rememberFact, saveHistory,
   ])
 
-  // ── Delete chat history for a character ─────────────────────────────────
+  // ── Delete chat history — auto-summarizes into memory before clearing ────
   const deleteHistory = useCallback(async (charId) => {
+    const history = historiesRef.current[charId] ?? []
+
+    // Clear immediately for fast feedback
     setChatHistories(prev => ({ ...prev, [charId]: [] }))
     await supabase.from('ai_chat_history')
       .delete()
       .eq('user_id', user.id)
       .eq('character_id', charId)
-  }, [user.id])
+
+    // Background: summarize conversation and save key facts to memory
+    if (history.length >= 6) {
+      const convoText = history
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
+        .join('\n')
+        .slice(-8000)
+
+      fetchCompletion([
+        {
+          role: 'system',
+          content: 'Extract the most important personal facts about the user from this conversation. Write 8-12 concise lines (no bullet symbols, no numbering). Focus on: goals they mentioned, struggles, schedule/lifestyle, preferences, emotional context, specific numbers or milestones, recurring themes. Be concrete and specific. Skip generic filler.',
+        },
+        { role: 'user', content: convoText },
+      ], { maxTokens: 500 }).then(summary => {
+        if (!summary) return
+        setCharacterMemories(prev => {
+          const existing = prev[charId] ?? ''
+          let updated = existing
+            ? `[Prior conversation summary]\n${summary}\n\n${existing}`
+            : `[Prior conversation summary]\n${summary}`
+          // Trim from the end if over cap — keeps the fresh summary, drops older facts
+          if (updated.length > MAX_MEMORY_CHARS) {
+            updated = updated.slice(0, MAX_MEMORY_CHARS)
+            const lastNewline = updated.lastIndexOf('\n')
+            if (lastNewline > 0) updated = updated.slice(0, lastNewline)
+          }
+          saveMemory(charId, updated)
+          return { ...prev, [charId]: updated }
+        })
+      }).catch(() => { /* silent — clearing succeeded, summary is best-effort */ })
+    }
+  }, [user.id, saveMemory])
 
   // ── Delete memory + reset relationship stats for a character ────────────
   const deleteMemory = useCallback(async (charId) => {
