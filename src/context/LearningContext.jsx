@@ -11,6 +11,14 @@ function genId() {
 function todayKey() {
   return new Date().toISOString().slice(0, 10)
 }
+function weekStartKey() {
+  const now = new Date()
+  const day = now.getDay() // 0=Sun, 1=Mon
+  const diff = day === 0 ? -6 : 1 - day // offset to Monday
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diff)
+  return monday.toISOString().slice(0, 10)
+}
 
 export function LearningProvider({ children }) {
   const { user }    = useAuth()
@@ -258,16 +266,18 @@ export function LearningProvider({ children }) {
   }, [areas])
 
   const getTotalStats = useCallback(() => {
-    const today = todayKey()
-    let todaySeconds = 0, totalSeconds = 0, totalXP = 0
+    const today     = todayKey()
+    const weekStart = weekStartKey()
+    let todaySeconds = 0, weekSeconds = 0, totalSeconds = 0, totalXP = 0
     for (const area of areas) {
       for (const s of area.sessions ?? []) {
-        if (s.date === today) todaySeconds += s.durationSeconds
+        if (s.date === today)      todaySeconds += s.durationSeconds
+        if (s.date >= weekStart)   weekSeconds  += s.durationSeconds
         totalSeconds += s.durationSeconds
         totalXP      += s.xpAwarded ?? 0
       }
     }
-    return { todaySeconds, totalSeconds, totalXP }
+    return { todaySeconds, weekSeconds, totalSeconds, totalXP }
   }, [areas])
 
   const setAreaDocUrl = useCallback((areaId, url) => {

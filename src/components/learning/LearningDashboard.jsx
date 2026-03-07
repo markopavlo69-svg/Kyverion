@@ -90,6 +90,13 @@ export default function LearningDashboard({ onSelectArea }) {
           </div>
         </div>
         <div className="dash-stat-card">
+          <span className="dash-stat__icon">📅</span>
+          <div>
+            <div className="dash-stat__val">{formatDuration(stats.weekSeconds)}</div>
+            <div className="dash-stat__lbl">This Week</div>
+          </div>
+        </div>
+        <div className="dash-stat-card">
           <span className="dash-stat__icon">📖</span>
           <div>
             <div className="dash-stat__val">{formatDuration(stats.totalSeconds)}</div>
