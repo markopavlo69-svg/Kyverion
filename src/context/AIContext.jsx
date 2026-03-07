@@ -107,7 +107,11 @@ WORKOUTS (PREFERRED — logs full detail):
     DATE: YYYY-MM-DD
     EXERCISES: "ExerciseName/Sets/Reps/Weight/Unit;Exercise2/..."
       Unit: kg / lbs / bodyweight
-    Example: [ACTION:add_workout_session:Morning Push Session|calisthenics|2026-02-28|Push-up/3/15/0/bodyweight;Squat/4/12/0/bodyweight]
+      Reps: single number for uniform sets (e.g. 15), OR comma-separated for variable reps per set (e.g. 5,4,3 — Sets field is ignored when commas present)
+    Examples:
+      Uniform:  Pull-up/3/10/0/bodyweight       (3 sets × 10 reps)
+      Variable: Pull-up/3/5,4,3/0/bodyweight    (sets of 5 reps, 4 reps, 3 reps)
+      Full: [ACTION:add_workout_session:Morning Push Session|calisthenics|2026-02-28|Push-up/3/15,15,10/0/bodyweight;Squat/4/12/0/bodyweight]
     ASK IF MISSING: If category, date, or exercise details are unclear, ask before creating.
 
 FINANCE:

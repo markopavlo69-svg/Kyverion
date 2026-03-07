@@ -178,8 +178,20 @@ export async function executeDataAction({ type, params }, ctx) {
         const task       = (ctx.tasks ?? []).find(t => t.id === taskId)
         const validFields = ['title', 'priority', 'dueDate', 'description', 'categories']
         if (!task)                       { result.description = `Task not found: ${taskId}`; break }
-        if (!validFields.includes(field)) { result.description = `Invalid field: "${field}"`; break }
         if (!ctx.updateTask)             { result.description = 'updateTask not available'; break }
+        // "status" is not a valid update_task field — route to completeTask when value means done
+        if (field === 'status') {
+          const completionValues = ['done', 'completed', 'complete', 'finished']
+          if (completionValues.includes(value.toLowerCase()) && ctx.completeTask) {
+            ctx.completeTask(taskId)
+            result.description = `"${task.title}" marked done`
+            result.success = true
+          } else {
+            result.description = `Cannot set status "${value}" — use complete_task instead`
+          }
+          break
+        }
+        if (!validFields.includes(field)) { result.description = `Invalid field: "${field}"`; break }
         if (field === 'dueDate' && !isValidDate(value)) {
           result.description = `Invalid dueDate: "${value}" (expected YYYY-MM-DD)`; break
         }
@@ -246,13 +258,19 @@ export async function executeDataAction({ type, params }, ctx) {
         const exercises = exPart
           ? exPart.split(';').map(ex => {
               const [name, setsStr, repsStr, weightStr, unit] = ex.split('/').map(s => s.trim())
+              // Support comma-separated reps for variable reps per set: "5,4,3"
+              const repsList = repsStr
+                ? repsStr.split(',').map(r => parseInt(r.trim(), 10) || 0)
+                : [0]
               return {
                 name: name || 'Exercise',
-                sets: Array.from({ length: parseInt(setsStr, 10) || 1 }, () => ({
-                  weight: parseFloat(weightStr) || 0,
-                  reps:   parseInt(repsStr, 10) || 0,
-                  unit:   unit || 'kg',
-                })),
+                sets: repsList.length > 1
+                  ? repsList.map(reps => ({ weight: parseFloat(weightStr) || 0, reps, unit: unit || 'kg' }))
+                  : Array.from({ length: parseInt(setsStr, 10) || 1 }, () => ({
+                      weight: parseFloat(weightStr) || 0,
+                      reps:   repsList[0],
+                      unit:   unit || 'kg',
+                    })),
               }
             })
           : []
