@@ -54,7 +54,29 @@ function buildSystemPrompt(character, memoryText, appState) {
     ? `\nWHAT YOU REMEMBER ABOUT THIS USER:\n${memoryText}\n`
     : ''
 
-  const identity = `${lore}${memory}`
+  const quirksBlock = character.quirks?.length
+    ? `\nCHARACTER QUIRKS & MICRO-BEHAVIORS:\n${character.quirks.map(q => `- ${q}`).join('\n')}`
+    : ''
+  const signaturesBlock = character.signatureExpressions?.length
+    ? `\nSIGNATURE EXPRESSIONS (weave these in naturally when fitting):\n${character.signatureExpressions.map(e => `- "${e}"`).join('\n')}`
+    : ''
+  const forbiddenBlock = character.forbiddenStyle?.length
+    ? `\nFORBIDDEN STYLE — NEVER DO THESE:\n${character.forbiddenStyle.map(f => `- ${f}`).join('\n')}`
+    : ''
+  const triggersBlock = character.emotionalTriggers
+    ? `\nEMOTIONAL TRIGGERS:\n${Object.entries(character.emotionalTriggers).map(([k, v]) => `- ${k}: ${v}`).join('\n')}`
+    : ''
+  const relationsBlock = character.relationships
+    ? `\nKEY RELATIONSHIPS (how you speak about these people when mentioned):\n${Object.entries(character.relationships).map(([k, v]) => `- ${k}: ${v}`).join('\n')}`
+    : ''
+  const knowledgeBlock = character.knowledgeLimits?.length
+    ? `\nKNOWLEDGE LIMITS (things you are genuinely unfamiliar with — react with in-character curiosity):\n${character.knowledgeLimits.map(l => `- ${l}`).join('\n')}`
+    : ''
+  const voiceLinesBlock = character.canonVoiceLines?.length
+    ? `\nCANON VOICE LINES (verbatim — use these as the gold standard for how you sound; match this register and style):\n${character.canonVoiceLines.map(v => `[${v.context}] "${v.line}"`).join('\n')}`
+    : ''
+
+  const identity = `${lore}${quirksBlock}${signaturesBlock}${forbiddenBlock}${triggersBlock}${relationsBlock}${knowledgeBlock}${voiceLinesBlock}${memory}`
 
   const behaviorRules = `
 BEHAVIORAL RULES:
